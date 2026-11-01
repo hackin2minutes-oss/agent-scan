@@ -84,6 +84,28 @@ def _load_json(path: str):
     return json.loads(Path(path).read_text(encoding="utf-8"))
 
 
+def _cmd_claims_check(args) -> int:
+    from agent_scan import claims
+    try:
+        lines = Path(args.transcript).read_text(encoding="utf-8").splitlines()
+    except (OSError, UnicodeDecodeError) as exc:
+        print(f"could not read the transcript: {exc}", file=sys.stderr)
+        return EXIT_ERROR
+    result = claims.check(lines)
+    if args.json:
+        print(json.dumps({"counts": result["counts"], "unreadable_lines": result["unreadable_lines"],
+                          "tool_calls_read": result["tool_calls_read"],
+                          "claims": [{"line": c.line, "text": c.text, "kind": c.kind, "status": c.status,
+                                      "evidence": c.evidence} for c in result["claims"]]}, indent=2))
+    else:
+        print(f"tool calls read: {result['tool_calls_read']}; unreadable lines: {len(result['unreadable_lines'])}")
+        print("claims: " + ", ".join(f"{k} {v}" for k, v in result["counts"].items()))
+        for item in result["claims"]:
+            print(f"  line {item.line} [{item.status}] {item.text[:90]}")
+            print(f"      {item.evidence}")
+    return EXIT_OK
+
+
 def _cmd_mcp_hash(args) -> int:
     from agent_scan import mcp
     try:
@@ -156,6 +178,12 @@ def build_parser() -> argparse.ArgumentParser:
     update_parser.set_defaults(handler=_cmd_kb_update)
     kb_commands.add_parser("rollback", help="restore the previous knowledge-base pack").set_defaults(
         handler=_cmd_kb_rollback)
+    claims_parser = commands.add_parser("claims", help="check an agent's claims against its session transcript")
+    claims_commands = claims_parser.add_subparsers(dest="claims_command", required=True)
+    check_parser = claims_commands.add_parser("check", help="check a JSON Lines transcript")
+    check_parser.add_argument("transcript")
+    check_parser.add_argument("--json", action="store_true")
+    check_parser.set_defaults(handler=_cmd_claims_check)
     mcp_parser = commands.add_parser("mcp", help="MCP tool-description commands")
     mcp_commands = mcp_parser.add_subparsers(dest="mcp_command", required=True)
     mcp_hash = mcp_commands.add_parser("hash", help="hash each tool of a saved tools/list output, for approval")
