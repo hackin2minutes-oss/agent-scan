@@ -258,6 +258,54 @@
       "reference": "https://github.com/openai/openai-agents-python/blob/main/src/agents/editor.py",
       "test": "tests/test_executor.py::test_editor_method_operation_reaching_a_shell_is_traced",
       "verified": "2026-11-01"
+    },
+    {
+      "id": "TEXT-HIDDEN-CHARACTERS",
+      "kind": "text_rule",
+      "rule": "hidden-text-in-rules",
+      "pattern": "[\\u200B-\\u200F\\u202A-\\u202E\\u2060-\\u2069\\uFEFF\\U000E0000-\\U000E007F]",
+      "message": "invisible or direction-changing characters, which can hide instructions from a reader",
+      "framework": "agent-instruction-files",
+      "weakness": "CWE-1007",
+      "reference": "https://trojansource.codes/",
+      "test": "tests/test_rules_files.py::test_zero_width_characters_in_an_instruction_file_are_flagged",
+      "verified": "2026-11-01"
+    },
+    {
+      "id": "TEXT-INSTRUCTION-IN-COMMENT",
+      "kind": "text_rule",
+      "rule": "instruction-in-html-comment",
+      "pattern": "<!--(?:(?!-->).)*\\b(?:ignore|override|system prompt|do not tell|without telling|exfiltrate|send to|curl |wget |password|api key)\\b(?:(?!-->).)*-->",
+      "message": "an HTML comment that reads as an instruction, which a reader of the rendered file would not see",
+      "framework": "agent-instruction-files",
+      "weakness": "CWE-1427",
+      "reference": "https://owasp.org/www-project-top-10-for-large-language-model-applications/",
+      "test": "tests/test_rules_files.py::test_instruction_in_html_comment_is_flagged",
+      "verified": "2026-11-01"
+    },
+    {
+      "id": "TEXT-APPROVAL-BYPASS",
+      "kind": "text_rule",
+      "rule": "approval-bypass-directive",
+      "pattern": "(?i)\\b(?:auto[- ]?approve|always approve|approve all|without (?:asking|confirmation|approval)|don'?t ask for (?:confirmation|approval)|no need to confirm|skip (?:the )?(?:approval|confirmation))\\b",
+      "message": "a directive that tells the agent to act without asking for approval",
+      "framework": "agent-instruction-files",
+      "weakness": "CWE-862",
+      "reference": "https://genai.owasp.org/",
+      "test": "tests/test_rules_files.py::test_approval_bypass_directive_is_flagged",
+      "verified": "2026-11-01"
+    },
+    {
+      "id": "TEXT-CREDENTIAL-VALUE",
+      "kind": "text_rule",
+      "rule": "credential-in-rules",
+      "pattern": "(?:AKIA[0-9A-Z]{16}|(?i:(?:api[_-]?key|secret|token|password)\\s*[:=]\\s*['\"]?[A-Za-z0-9/+_\\-]{16,}))",
+      "message": "a credential value in an instruction file, which every agent run can read",
+      "framework": "agent-instruction-files",
+      "weakness": "CWE-798",
+      "reference": "https://cwe.mitre.org/data/definitions/798.html",
+      "test": "tests/test_rules_files.py::test_credential_in_rules_is_flagged_and_redacted",
+      "verified": "2026-11-01"
     }
   ]
 }

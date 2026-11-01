@@ -316,6 +316,23 @@ def scan_path(root: Path) -> ScanResult:
     root = Path(root)
     result = ScanResult(root=str(root))
     sinks = _load_sinks()
+    from agent_scan import kb, textscan
+    text_rules = textscan.text_rules(kb.entries())
+    for path, relative in textscan.rule_files(root):
+        result.files_scanned += 1
+        if path.stat().st_size > textscan.MAX_BYTES:
+            result.findings.append(Finding("file-too-large", relative, 1, "UNKNOWN",
+                                           "the file is larger than the scan limit, so it was not read",
+                                           ["a file within the size limit"]))
+            continue
+        try:
+            text = path.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            result.findings.append(Finding("unreadable-file", relative, 1, "UNKNOWN",
+                                           "the rules file could not be read as UTF-8 text",
+                                           ["a readable UTF-8 file"]))
+            continue
+        result.findings.extend(textscan.scan_text(text, relative, text_rules))
     for path, relative in _python_files(root):
         result.files_scanned += 1
         try:
