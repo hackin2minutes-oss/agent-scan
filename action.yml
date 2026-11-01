@@ -1,0 +1,34 @@
+name: "Agent Scan"
+description: "Scans AI and agent code, instruction files and MCP configuration for agent-specific weaknesses. Writes SARIF."
+author: "hackin2minutes-oss"
+branding:
+  icon: "shield"
+  color: "blue"
+inputs:
+  path:
+    description: "Directory to scan, relative to the workspace."
+    required: false
+    default: "."
+  format:
+    description: "Output format: sarif (default), json or text."
+    required: false
+    default: "sarif"
+  output:
+    description: "File to write the result to, relative to the workspace."
+    required: false
+    default: "agent-scan.sarif"
+outputs:
+  report:
+    description: "The file the result was written to."
+    value: ${{ inputs.output }}
+runs:
+  using: "docker"
+  # Built from this repository's Dockerfile. Publishing to a registry and pinning by digest happens at release.
+  image: "Dockerfile"
+  args:
+    - "scan"
+    - ${{ inputs.path }}
+    - "--format"
+    - ${{ inputs.format }}
+    - "--output"
+    - ${{ inputs.output }}

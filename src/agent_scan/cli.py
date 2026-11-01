@@ -25,6 +25,13 @@ def _print_summary(result: scanner.ScanResult, pack_version: str) -> None:
             print(f"      missing: {item}")
 
 
+def _emit(args, text: str) -> None:
+    if args.output:
+        Path(args.output).write_text(text + "\n", encoding="utf-8")
+    else:
+        print(text)
+
+
 def _cmd_scan(args) -> int:
     check = kb.verify()
     if not check.ok:
@@ -43,9 +50,9 @@ def _cmd_scan(args) -> int:
         print(f"scan could not complete: {exc}", file=sys.stderr)
         return EXIT_ERROR
     if args.format == "sarif":
-        print(json.dumps(sarif.to_sarif(result, check.version), indent=2))
+        _emit(args, json.dumps(sarif.to_sarif(result, check.version), indent=2))
     elif args.format == "json" or args.json:
-        print(json.dumps({"agent_scan": __version__, "knowledge_base": check.version,
+        _emit(args, json.dumps({"agent_scan": __version__, "knowledge_base": check.version,
                           "root": result.root, "files_scanned": result.files_scanned,
                           "counts": result.counts(),
                           "findings": [finding.to_dict() for finding in result.findings]}, indent=2))
@@ -95,6 +102,7 @@ def build_parser() -> argparse.ArgumentParser:
     scan.add_argument("--format", choices=["text", "json", "sarif"], default="text",
                       help="output format: text (default), json, or sarif 2.1.0")
     scan.add_argument("--json", action="store_true", help="same as --format json")
+    scan.add_argument("--output", help="write the result to this file instead of standard output")
     scan.add_argument("--mcp-tools", help="saved tools/list output of an MCP server, to check its tool descriptions")
     scan.add_argument("--mcp-approved", help="approved hashes for those tools, as written by 'mcp hash'")
     scan.set_defaults(handler=_cmd_scan)

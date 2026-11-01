@@ -80,3 +80,28 @@ class KbCommandTest(unittest.TestCase):
     def test_version_prints_the_package_version(self):
         code, out, _ = run_cli("version")
         self.assertEqual((code, out.strip()), (cli.EXIT_OK, "0.0.1"))
+
+
+class OutputFileTest(unittest.TestCase):
+    def test_output_option_writes_the_result_to_a_file(self):
+        project = Path(tempfile.mkdtemp())
+        (project / "app.py").write_text("import os\nos.system(cmd)\n", encoding="utf-8")
+        target = Path(tempfile.mkdtemp()) / "result.sarif"
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            code = cli.main(["scan", str(project), "--format", "sarif", "--output", str(target)])
+        self.assertEqual(code, cli.EXIT_OK)
+        self.assertEqual(out.getvalue(), "")
+        self.assertEqual(json.loads(target.read_text(encoding="utf-8"))["version"], "2.1.0")
+
+
+class ActionDefinitionTest(unittest.TestCase):
+    def test_action_arguments_match_the_cli_options(self):
+        import re
+        root = Path(__file__).resolve().parent.parent
+        action = (root / "action.yml").read_text(encoding="utf-8")
+        for option in ["--format", "--output"]:
+            self.assertIn(f'"{option}"', action)
+        self.assertIn('"scan"', action)
+        self.assertRegex(action, r'image: "Dockerfile"')
+        cli.build_parser().parse_args(["scan", ".", "--format", "sarif", "--output", "x.sarif"])
