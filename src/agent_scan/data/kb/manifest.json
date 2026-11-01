@@ -4,5 +4,8 @@
   "files": {
     "entries.json": "1752c290d76f74872b376adf9f05c6f862065687e3c7fa9e4774adca747d155d"
   },
-  "signature": null
+  "signature": {
+    "algorithm": "ed25519",
+    "value": "uA7HWI7kd75UYoZFhcKa9HUcwRJ1DRekWJEyC3oXSF8Otsa70ENMdUdZyYf+BOflK6gQtnewSqe/WATnO7RsAw=="
+  }
 }
