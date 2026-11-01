@@ -84,6 +84,35 @@
       "reference": "https://docs.python.org/3/library/functions.html#exec",
       "test": "tests/test_scanner.py::test_exec_with_variable_is_needs_review",
       "verified": "2026-11-01"
+    },
+    {
+      "id": "SOURCE-OPENAI-TOOL-ARGUMENTS",
+      "kind": "source",
+      "pattern": "function.arguments",
+      "framework": "openai",
+      "arguments": [
+        "tool_calls[].function.arguments"
+      ],
+      "weakness": "CWE-20",
+      "reference": "https://github.com/openai/openai-python/blob/main/src/openai/types/chat/chat_completion_message_function_tool_call.py",
+      "test": "tests/test_flow.py::test_tool_call_arguments_reach_subprocess_is_needs_review",
+      "verified": "2026-11-01"
+    },
+    {
+      "id": "SANITISER-PY-SHLEX-QUOTE",
+      "kind": "sanitiser",
+      "module": "shlex",
+      "functions": [
+        "quote"
+      ],
+      "framework": "python-standard-library",
+      "arguments": [
+        "s"
+      ],
+      "weakness": "CWE-78",
+      "reference": "https://docs.python.org/3/library/shlex.html#shlex.quote",
+      "test": "tests/test_flow.py::test_shlex_quote_around_the_sink_argument_breaks_the_path",
+      "verified": "2026-11-01"
     }
   ]
 }

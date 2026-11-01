@@ -1,0 +1,143 @@
+"""Intra-function taint tracking: a value from model output reaching a sink in the same function.
+
+Sources, sinks and sanitisers come from the knowledge base. The analysis is conservative and limited on purpose:
+
+- Scope: one function body at a time (module level is one scope). Values passed into or returned from another
+  function are not followed, and the report says so.
+- Propagation: an assignment whose right-hand side contains a tainted value makes the target tainted. Any
+  reassignment with an untainted value clears the taint. Loops are read in source order once.
+- A sanitiser call wrapping a sink argument directly breaks the path for that argument.
+- The result is NEEDS_REVIEW, never a confirmed path: the knowledge base says model output is a source, but nothing
+  in the code shows that an attacker controls it. The trace is reported so a reviewer can follow it.
+"""
+
+import ast
+from pathlib import Path
+
+from agent_scan.scanner import NEEDS_REVIEW, Finding
+
+RULE = "tainted-value-to-sink"
+SOURCE_KIND = "source"
+SANITISER_KIND = "sanitiser"
+
+
+def _tokens(node: ast.AST) -> list[str] | None:
+    """Dotted tokens of an attribute chain such as response.choices[].function.arguments, or None."""
+    parts: list[str] = []
+    while True:
+        if isinstance(node, ast.Attribute):
+            parts.append(node.attr)
+            node = node.value
+        elif isinstance(node, ast.Subscript):
+            parts.append("[]")
+            node = node.value
+        elif isinstance(node, ast.Name):
+            parts.append(node.id)
+            return list(reversed(parts))
+        else:
+            return None
+
+
+def _call_key(node: ast.Call):
+    func = node.func
+    if isinstance(func, ast.Attribute) and isinstance(func.value, ast.Name):
+        return (func.value.id, func.attr)
+    if isinstance(func, ast.Name):
+        return (None, func.id)
+    return None
+
+
+def load_flow_knowledge(entries: list[dict]) -> dict:
+    """Source suffixes, sanitiser keys, from knowledge-base entries."""
+    sources = []
+    sanitisers = set()
+    for entry in entries:
+        if entry.get("kind") == SOURCE_KIND:
+            sources.append(tuple(entry["pattern"].split(".")))
+        elif entry.get("kind") == SANITISER_KIND:
+            for function in entry.get("functions", []):
+                sanitisers.add((entry.get("module"), function))
+    return {"sources": sources, "sanitisers": sanitisers}
+
+
+def _source_trace(expr: ast.AST, sources) -> list[str] | None:
+    for node in ast.walk(expr):
+        if isinstance(node, ast.Attribute):
+            tokens = _tokens(node)
+            if tokens and any(tuple(tokens[-len(s):]) == s for s in sources if len(tokens) >= len(s)):
+                return [f"line {node.lineno}: model output read from .{'.'.join(tokens[-2:])}"]
+    return None
+
+
+def _taint_of(expr: ast.AST, tainted: dict, sources) -> list[str] | None:
+    source = _source_trace(expr, sources)
+    if source:
+        return source
+    for node in ast.walk(expr):
+        if isinstance(node, ast.Name) and node.id in tainted:
+            return tainted[node.id]
+    return None
+
+
+def _scopes(tree: ast.Module):
+    yield tree
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            yield node
+
+
+def _scope_events(scope):
+    """Assignments and calls of one scope, in source order, without descending into nested functions."""
+    events = []
+    stack = list(ast.iter_child_nodes(scope))
+    while stack:
+        node = stack.pop()
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)):
+            continue
+        if isinstance(node, (ast.Assign, ast.Call)):
+            events.append(node)
+        stack.extend(ast.iter_child_nodes(node))
+    return sorted(events, key=lambda n: (n.lineno, n.col_offset, 0 if isinstance(n, ast.Assign) else 1))
+
+
+def scan_flows(tree: ast.Module, rel_path: str, sinks: set, knowledge: dict) -> list[Finding]:
+    sources = knowledge["sources"]
+    sanitisers = knowledge["sanitisers"]
+    findings: list[Finding] = []
+    if not sources:
+        return findings
+    for scope in _scopes(tree):
+        tainted: dict[str, list[str]] = {}
+        for event in _scope_events(scope):
+            if isinstance(event, ast.Assign):
+                trace = _taint_of(event.value, tainted, sources)
+                for target in event.targets:
+                    if isinstance(target, ast.Name):
+                        if trace:
+                            tainted[target.id] = trace + [f"line {event.lineno}: assigned to {target.id}"]
+                        else:
+                            tainted.pop(target.id, None)
+                continue
+            key = _call_key(event)
+            if key is None or key not in sinks:
+                continue
+            for argument in event.args:
+                if isinstance(argument, ast.Call) and _call_key(argument) in sanitisers:
+                    continue
+                trace = _taint_of(argument, tainted, sources)
+                if trace:
+                    findings.append(Finding(
+                        rule=RULE,
+                        path=rel_path,
+                        line=event.lineno,
+                        verdict=NEEDS_REVIEW,
+                        reason=(f"model output reaches {key[1] if key[0] is None else key[0] + '.' + key[1]} "
+                                "in the same function; whether an attacker can influence the model output is not "
+                                "established"),
+                        missing=["whether untrusted content can reach the model input (prompt injection)",
+                                 "validation or sanitisation between the source and the sink, if any",
+                                 "data flow across function boundaries (not followed)"],
+                        trace=trace + [f"line {event.lineno}: reaches the sink"],
+                    ))
+                    break
+    return findings

@@ -49,10 +49,11 @@ class Finding:
     verdict: str
     reason: str
     missing: list[str] = field(default_factory=list)
+    trace: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict:
         return {"rule": self.rule, "path": self.path, "line": self.line, "verdict": self.verdict,
-                "reason": self.reason, "missing": list(self.missing)}
+                "reason": self.reason, "missing": list(self.missing), "trace": list(self.trace)}
 
 
 @dataclass
@@ -100,6 +101,9 @@ def scan_source(source: str, rel_path: str, sinks: set[tuple] | None = None) -> 
         return [Finding("parse-error", rel_path, 1, UNKNOWN, "the file could not be parsed as Python",
                         ["a file that parses as Python"])]
     findings = []
+    from agent_scan import flow, kb
+    knowledge = flow.load_flow_knowledge(kb.entries())
+    findings.extend(flow.scan_flows(tree, rel_path, sinks, knowledge))
     for node in ast.walk(tree):
         if not isinstance(node, ast.Call):
             continue
