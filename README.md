@@ -16,6 +16,17 @@ agent-scan scan path/to/project --json
 agent-scan kb status
 ```
 
+## Container
+
+```
+docker build -t agent-scan:0.0.1 .
+docker run --rm --network none --read-only --tmpfs /tmp --user 1001:1001 \
+  -v "$PWD:/work:ro" agent-scan:0.0.1 scan /work
+```
+
+The image runs as a non-root user, needs no network to scan, and the base image is pinned by digest. Verified locally
+with networking off and a read-only root filesystem.
+
 ## Principles
 
 - Honest verdicts: a finding is never reported as confirmed without a traced path.
