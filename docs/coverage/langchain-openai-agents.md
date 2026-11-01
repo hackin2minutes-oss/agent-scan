@@ -39,7 +39,7 @@ LangChain tool methods (`invoke`, `run`, `ainvoke`, `arun`), and the Agents SDK 
 | Surface | Role | Status | Reason / milestone |
 |---|---|---|---|
 | `agents.run.Runner.run` / `run_sync` | Loop: runs an agent until it stops | COVERED (for an explicit `max_turns=None`) | A missing `max_turns` is not reported: the SDK's default is 10 turns. |
-| `agents.guardrail` (input and output guardrails) | Guard: checks content before or after a model call | PLANNED (M1) | A guard breaks a path only if it is listed as a sanitiser with its conditions. |
+| `agents.guardrail` (input, output, and tool guardrails) | Guard: checks content before or after a model call | OUT OF SCOPE as a sanitiser | Decision: a guardrail is never credited as a sanitiser. Most guardrails are themselves model-based and can be steered, and the SDK does not state what a guardrail guarantees. A path through a guardrail is still reported. |
 | `needs_approval` on `agents.tool.function_tool` | Guard: requires confirmation before a tool runs | COVERED (for tools whose body reaches a sink) | A tool reaching a sink with no approval, or with it set to False, is reported. A callable approval is not judged statically. |
 
 ## 3. Model output and content sources
@@ -58,6 +58,8 @@ LangChain tool methods (`invoke`, `run`, `ainvoke`, `arun`), and the Agents SDK 
 3. **Entries** for each PLANNED row above, each with a reference and a passing test.
 
 ## 5. Known limits of the current checks
+
+- Guardrails are never credited as sanitisers (see section 2). A flow through a guardrail is still reported.
 
 - Receivers are typed per file, not per function: a name reused for something else in the same file may be wrongly typed.
 - Only the two decorators above create typed tools. `StructuredTool.from_function` and similar constructors are not typed.
