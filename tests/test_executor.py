@@ -54,3 +54,33 @@ class ExecutorTest(unittest.TestCase):
     def test_an_executor_defined_elsewhere_is_not_traced_here(self):
         source = "from agents import LocalShellTool\ntool = LocalShellTool(executor=imported_run)\n"
         self.assertEqual(scan_source(source, "app.py"), [])
+
+
+class EditorTest(unittest.TestCase):
+    def test_editor_method_operation_reaching_a_shell_is_traced(self):
+        source = (
+            "import os\n"
+            "from agents import ApplyPatchTool\n"
+            "class Editor:\n"
+            "    def create_file(self, operation):\n"
+            "        os.system(operation.diff)\n"
+            "tool = ApplyPatchTool(editor=Editor())\n"
+        )
+        findings = [f for f in scan_source(source, "app.py") if f.rule == "tainted-value-to-sink"]
+        self.assertEqual(len(findings), 1)
+        self.assertIn("ApplyPatchTool(editor=...)", " ".join(findings[0].trace))
+
+    def test_a_method_with_the_same_name_in_another_class_is_not_traced(self):
+        source = (
+            "import os\n"
+            "from agents import ApplyPatchTool\n"
+            "class Editor:\n"
+            "    def create_file(self, operation):\n"
+            "        os.system(operation.diff)\n"
+            "class Other:\n"
+            "    def create_file(self, operation):\n"
+            "        os.system(operation.diff)\n"
+            "tool = ApplyPatchTool(editor=Editor())\n"
+        )
+        findings = [f for f in scan_source(source, "app.py") if f.rule == "tainted-value-to-sink"]
+        self.assertEqual([f.line for f in findings], [5])

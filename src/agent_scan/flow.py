@@ -58,9 +58,14 @@ def load_flow_knowledge(entries: list[dict]) -> dict:
     return {"sources": sources, "sanitisers": sanitisers, "parameter_sources": parameter_sources}
 
 
-def _executor_functions(tree: ast.Module, aliases: dict, parameter_sources: dict) -> dict[str, str]:
-    """Names of functions handed to a parameter source, mapped to the framework call that receives them."""
-    names = {}
+def _executor_functions(tree: ast.Module, aliases: dict, parameter_sources: dict) -> dict[int, str]:
+    """Functions whose parameters receive model-chosen input, keyed by the function node's identity.
+
+    A function passed by name is one. An editor class passed as an instance (editor=Editor()) contributes each of its
+    methods except __init__. The description names the framework call that receives them."""
+    classes = {node.name: node for node in tree.body if isinstance(node, ast.ClassDef)}
+    functions = {node.name: node for node in ast.walk(tree) if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))}
+    found: dict[int, str] = {}
     for node in ast.walk(tree):
         if not isinstance(node, ast.Call):
             continue
@@ -69,9 +74,17 @@ def _executor_functions(tree: ast.Module, aliases: dict, parameter_sources: dict
             continue
         keyword = parameter_sources[key]
         for argument in node.keywords:
-            if argument.arg == keyword and isinstance(argument.value, ast.Name):
-                names[argument.value.id] = f"{key[1]}({keyword}=...)"
-    return names
+            if argument.arg != keyword:
+                continue
+            description = f"{key[1]}({keyword}=...)"
+            value = argument.value
+            if isinstance(value, ast.Name) and value.id in functions:
+                found[id(functions[value.id])] = description
+            elif isinstance(value, ast.Call) and isinstance(value.func, ast.Name) and value.func.id in classes:
+                for method in classes[value.func.id].body:
+                    if isinstance(method, (ast.FunctionDef, ast.AsyncFunctionDef)) and method.name != "__init__":
+                        found[id(method)] = description
+    return found
 
 
 def _source_trace(expr: ast.AST, sources) -> list[str] | None:
@@ -125,12 +138,12 @@ def scan_flows(tree: ast.Module, rel_path: str, sinks: set, knowledge: dict) -> 
     executors = _executor_functions(tree, aliases, knowledge.get("parameter_sources", {}))
     for scope in _scopes(tree):
         tainted: dict[str, list[str]] = {}
-        if isinstance(scope, (ast.FunctionDef, ast.AsyncFunctionDef)) and scope.name in executors:
+        if isinstance(scope, (ast.FunctionDef, ast.AsyncFunctionDef)) and id(scope) in executors:
             for argument in scope.args.args:
                 if argument.arg != "self":
                     tainted[argument.arg] = [
                         f"line {scope.lineno}: parameter {argument.arg} of {scope.name}, which receives "
-                        f"model-chosen input through {executors[scope.name]}"]
+                        f"model-chosen input through {executors[id(scope)]}"]
         for event in _scope_events(scope):
             if isinstance(event, ast.Assign):
                 trace = _taint_of(event.value, tainted, sources)

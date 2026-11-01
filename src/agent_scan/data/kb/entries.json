@@ -241,6 +241,23 @@
       "reference": "https://github.com/openai/openai-agents-python/blob/main/src/agents/tool.py",
       "test": "tests/test_executor.py::test_executor_request_reaching_a_shell_is_traced",
       "verified": "2026-11-01"
+    },
+    {
+      "id": "PARAM-AGENTS-APPLY-PATCH-EDITOR",
+      "kind": "parameter_source",
+      "module": "agents",
+      "functions": [
+        "ApplyPatchTool"
+      ],
+      "keyword": "editor",
+      "framework": "openai-agents",
+      "arguments": [
+        "editor"
+      ],
+      "weakness": "CWE-22",
+      "reference": "https://github.com/openai/openai-agents-python/blob/main/src/agents/editor.py",
+      "test": "tests/test_executor.py::test_editor_method_operation_reaching_a_shell_is_traced",
+      "verified": "2026-11-01"
     }
   ]
 }

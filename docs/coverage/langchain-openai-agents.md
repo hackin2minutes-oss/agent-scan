@@ -11,7 +11,8 @@ Status key (from the OWASP coverage specification):
 - **NOT DETECTABLE YET:** needs type information or taint tracking that the scanner does not have yet. The reason is given.
 - **OUT OF SCOPE:** stated with the reason.
 
-**Current result (version 0.0.1, after the approval rule):** 5 framework items are COVERED: the Agents SDK runner's
+**Current result (version 0.0.1, after the executor and editor rules):** 7 framework items are COVERED. Added: the local
+shell executor and the apply-patch editor, where model-chosen input reaches the tool's own code. Earlier: the Agents SDK runner's
 unlimited turn limit (`max_turns=None`) and the approval step on `function_tool` tools that reach a sink. Also covered: the LangChain `tool` decorator, the
 LangChain tool methods (`invoke`, `run`, `ainvoke`, `arun`), and the Agents SDK `function_tool` decorator with its
 `on_invoke_tool` method. Each is backed by a knowledge-base entry and a test. Other framework items are still open, as marked below.
@@ -25,10 +26,10 @@ LangChain tool methods (`invoke`, `run`, `ainvoke`, `arun`), and the Agents SDK 
 | `langchain_core.tools.BaseToolkit` | Definition: groups tools | PLANNED (M1) | Counts the tools an agent receives (excessive agency). |
 | `agents.tool.function_tool` | Definition: wraps a Python function as an agent tool | COVERED (typing only) | Same as the LangChain decorator. |
 | `agents.tool.FunctionTool.on_invoke_tool` | Sink: runs the user function with model-chosen arguments | COVERED (for tools made with `function_tool`) | Same as the LangChain row. |
-| `agents.tool.LocalShellTool` | Sink: model-chosen shell commands on the local machine | PLANNED (M0) | Entry needed for the executor that runs the commands. High priority. |
+| `agents.tool.LocalShellTool` | Sink: model-chosen shell commands on the local machine | COVERED (for an executor function or method passed by name) | The executor's parameters are model output; a flow into a shell or eval sink is traced. An executor defined elsewhere is not followed. |
 | `agents.tool.ShellToolLocalSkill`, `ShellToolInlineSkill` | Definition: shell skills and their sources | PLANNED (M1) | Skills are a supply-chain surface (ASI04). |
 | `agents.tool.ComputerTool` | Permission: controls the screen and input | PLANNED (M1) | Safety-check hooks are recognised as guards. |
-| `agents.tool.ApplyPatchTool` | Sink: applies model-written patches to files | PLANNED (M0) | Writes to files chosen by the model. |
+| `agents.tool.ApplyPatchTool` | Sink: applies model-written patches to files | COVERED (for an editor class passed as an instance, and a function passed by name) | The editor's methods receive model-chosen operations; a flow into a shell or eval sink is traced. File writes that use no sink are not reported. |
 | `agents.tool.HostedMCPTool` | Permission: remote MCP server reachable from the agent | PLANNED (M1) | Tool descriptions are checked against approved hashes. |
 | `agents.tool.FileSearchTool`, `WebSearchTool` | Source: retrieved content entering the context | PLANNED (M2) | Source for prompt injection (LLM01, ASI01). |
 | `agents.tool.CodeInterpreterTool` | Hosted execution: runs code in the provider's sandbox | OUT OF SCOPE for local code execution | Execution is remote. Reported as a permission. |
