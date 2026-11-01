@@ -1,6 +1,7 @@
 """Scanner core.
 
-Milestone 0, first check: a value that is not a literal reaching a shell or eval sink in Python code.
+Milestone 0, first check: a value that is not a literal reaching a sink in Python code. Sinks come from the
+knowledge base, so adding a sink is a data change, not a code change.
 
 Verdicts used here:
 - NEEDS_REVIEW: a non-literal argument reaches a sink. The origin of the value is not established, so no
@@ -18,17 +19,24 @@ from pathlib import Path
 NEEDS_REVIEW = "NEEDS_REVIEW"
 UNKNOWN = "UNKNOWN"
 
-# Calls that run a command or evaluate code. Keys are (module or None, function name).
-SHELL_SINKS = {
-    ("os", "system"),
-    ("os", "popen"),
-    ("subprocess", "run"),
-    ("subprocess", "call"),
-    ("subprocess", "check_call"),
-    ("subprocess", "check_output"),
-    ("subprocess", "Popen"),
-}
-EVAL_SINKS = {(None, "eval"), (None, "exec")}
+SINK_KIND = "sink"
+
+
+def sink_keys(entries_list: list[dict]) -> set[tuple]:
+    """(module, function) pairs for every sink in the knowledge base. Module is None for builtins."""
+    keys = set()
+    for entry in entries_list:
+        if entry.get("kind") != SINK_KIND:
+            continue
+        for function in entry.get("functions", []):
+            keys.add((entry.get("module"), function))
+    return keys
+
+
+def _load_sinks() -> set[tuple]:
+    from agent_scan import kb
+    return sink_keys(kb.entries())
+
 
 SKIPPED_DIRECTORIES = {".git", ".venv", "venv", "__pycache__", "build", "dist", "node_modules"}
 
@@ -82,8 +90,10 @@ def _sink_label(key) -> str:
     return f"{module}.{name}" if module else name
 
 
-def scan_source(source: str, rel_path: str) -> list[Finding]:
-    """Findings for one Python source text. A file that does not parse gives one UNKNOWN finding."""
+def scan_source(source: str, rel_path: str, sinks: set[tuple] | None = None) -> list[Finding]:
+    """Findings for one Python source text. A file that does not parse gives one UNKNOWN finding.
+    Sinks come from the knowledge base unless given."""
+    sinks = _load_sinks() if sinks is None else sinks
     try:
         tree = ast.parse(source, filename=rel_path)
     except (SyntaxError, ValueError):
@@ -96,12 +106,9 @@ def scan_source(source: str, rel_path: str) -> list[Finding]:
         key = _call_key(node)
         if key is None or not node.args:
             continue
-        if key in SHELL_SINKS:
-            rule = "shell-sink-non-literal"
-        elif key in EVAL_SINKS:
-            rule = "eval-sink-non-literal"
-        else:
+        if key not in sinks:
             continue
+        rule = "eval-sink-non-literal" if key[0] is None else "shell-sink-non-literal"
         if all(_is_literal(argument) for argument in node.args):
             continue
         findings.append(Finding(
@@ -126,6 +133,7 @@ def _python_files(root: Path):
 def scan_path(root: Path) -> ScanResult:
     root = Path(root)
     result = ScanResult(root=str(root))
+    sinks = _load_sinks()
     for path, relative in _python_files(root):
         result.files_scanned += 1
         try:
@@ -135,5 +143,5 @@ def scan_path(root: Path) -> ScanResult:
                                            "the file could not be read as UTF-8 text",
                                            ["a readable UTF-8 file"]))
             continue
-        result.findings.extend(scan_source(source, relative))
+        result.findings.extend(scan_source(source, relative, sinks))
     return result

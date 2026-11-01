@@ -30,6 +30,19 @@ class ShellAndEvalSinkTest(unittest.TestCase):
     def test_eval_with_literal_is_not_reported(self):
         self.assertEqual(scan_source("x = eval('1 + 1')\n", "app.py"), [])
 
+    def test_os_popen_with_variable_is_needs_review(self):
+        findings = scan_source("import os\nos.popen(cmd)\n", "app.py")
+        self.assertEqual([f.rule for f in findings], ["shell-sink-non-literal"])
+
+    def test_exec_with_variable_is_needs_review(self):
+        findings = scan_source("code = get()\nexec(code)\n", "app.py")
+        self.assertEqual([f.rule for f in findings], ["eval-sink-non-literal"])
+
+    def test_a_sink_added_to_the_knowledge_base_is_found_without_code_changes(self):
+        sinks = {("mylib", "dangerous")}
+        findings = scan_source("import mylib\nmylib.dangerous(x)\n", "app.py", sinks)
+        self.assertEqual(len(findings), 1)
+
     def test_every_finding_names_what_is_missing(self):
         findings = scan_source("import os\nos.system(cmd)\n", "app.py")
         self.assertTrue(findings[0].missing)

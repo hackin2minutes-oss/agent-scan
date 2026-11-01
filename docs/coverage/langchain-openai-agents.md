@@ -1,0 +1,60 @@
+# Coverage check: LangChain, OpenAI SDK, OpenAI Agents SDK
+
+Inventory taken from the installed packages on 2026-11-01:
+- langchain-core 1.7.3
+- openai 3.42.0
+- openai-agents 0.24.0
+
+Status key (from the OWASP coverage specification):
+- **COVERED:** a knowledge-base entry and a test exist, and the scanner detects it.
+- **PLANNED:** a milestone is named.
+- **NOT DETECTABLE YET:** needs type information or taint tracking that the scanner does not have yet. The reason is given.
+- **OUT OF SCOPE:** stated with the reason.
+
+**Current result: 0 framework items are COVERED.** The scanner covers Python standard-library sinks only (see
+`src/agent_scan/data/kb/entries.json`). This check exists so that the gap is visible, not hidden.
+
+## 1. Tool execution: where model-chosen arguments run
+
+| Surface | Role | Status | Reason / milestone |
+|---|---|---|---|
+| `langchain_core.tools.BaseTool.invoke` / `run` / `_run` (`ChildTool`) | Sink: runs a tool with arguments that may come from a model | NOT DETECTABLE YET | Method call on an object. Needs type inference to know the receiver is a tool. M0 follow-up. |
+| `langchain_core.tools.tool` (decorator) | Definition: declares the tool and its argument schema | PLANNED (M0) | Argument schemas decide whether free-text arguments reach a shell or path. |
+| `langchain_core.tools.BaseToolkit` | Definition: groups tools | PLANNED (M1) | Counts the tools an agent receives (excessive agency). |
+| `agents.tool.function_tool` | Definition: wraps a Python function as an agent tool | PLANNED (M0) | Same as the LangChain decorator. |
+| `agents.tool.FunctionTool.on_invoke_tool` | Sink: runs the user function with model-chosen arguments | NOT DETECTABLE YET | Same reason as `BaseTool.invoke`. |
+| `agents.tool.LocalShellTool` | Sink: model-chosen shell commands on the local machine | PLANNED (M0) | Entry needed for the executor that runs the commands. High priority. |
+| `agents.tool.ShellToolLocalSkill`, `ShellToolInlineSkill` | Definition: shell skills and their sources | PLANNED (M1) | Skills are a supply-chain surface (ASI04). |
+| `agents.tool.ComputerTool` | Permission: controls the screen and input | PLANNED (M1) | Safety-check hooks are recognised as guards. |
+| `agents.tool.ApplyPatchTool` | Sink: applies model-written patches to files | PLANNED (M0) | Writes to files chosen by the model. |
+| `agents.tool.HostedMCPTool` | Permission: remote MCP server reachable from the agent | PLANNED (M1) | Tool descriptions are checked against approved hashes. |
+| `agents.tool.FileSearchTool`, `WebSearchTool` | Source: retrieved content entering the context | PLANNED (M2) | Source for prompt injection (LLM01, ASI01). |
+| `agents.tool.CodeInterpreterTool` | Hosted execution: runs code in the provider's sandbox | OUT OF SCOPE for local code execution | Execution is remote. Reported as a permission. |
+
+## 2. Agent loops and guards
+
+| Surface | Role | Status | Reason / milestone |
+|---|---|---|---|
+| `agents.run.Runner.run` / `run_sync` | Loop: runs an agent until it stops | PLANNED (M0) | Missing `max_turns` is an unbounded loop (LLM10, ASI08). |
+| `agents.guardrail` (input and output guardrails) | Guard: checks content before or after a model call | PLANNED (M1) | A guard breaks a path only if it is listed as a sanitiser with its conditions. |
+| Tool approval hooks in `agents.tool` | Guard: requires confirmation before a tool runs | PLANNED (M0) | Missing approval on a destructive tool is reported (LLM06). |
+
+## 3. Model output and content sources
+
+| Surface | Role | Status | Reason / milestone |
+|---|---|---|---|
+| `openai` chat completions `tool_calls[].function.arguments` | Source: model-chosen arguments | NOT DETECTABLE YET | Needs taint tracking from the response into a sink. M0 flow analysis. |
+| `openai` Responses API `function_call` items and their output | Source: model-chosen arguments | NOT DETECTABLE YET | Same as above. |
+| Retrieved content (vector stores, web and file search results) | Source: untrusted content | PLANNED (M2) | LLM01, LLM08, ASI01. |
+
+## 4. What the scanner needs to close the gaps
+
+1. **Type information** for method calls on tool objects (NOT DETECTABLE YET rows). Without it, the scanner can only match
+   module-level functions, which is why the framework rows stay open.
+2. **Taint tracking** from a source (model response, retrieved content) to a sink. This is the M0 flow analysis.
+3. **Entries** for each PLANNED row above, each with a reference and a passing test.
+
+## 5. Gate for M0
+
+M0 does not close until every row in this document is COVERED, PLANNED with a milestone inside M0, or OUT OF SCOPE with a
+stated reason. No row is left without a status.
