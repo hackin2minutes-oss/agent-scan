@@ -225,6 +225,17 @@ def _name_key(node, aliases: dict[str, str]):
     return None
 
 
+def _dotted_name(node: ast.AST) -> list[str] | None:
+    """The names of a plain dotted path such as urllib.request, or None when the path has other parts."""
+    parts: list[str] = []
+    while isinstance(node, ast.Attribute):
+        parts.append(node.attr)
+        node = node.value
+    if isinstance(node, ast.Name):
+        return [node.id] + list(reversed(parts))
+    return None
+
+
 def resolve_call_key(node: ast.Call, aliases: dict[str, str], types: dict[str, str] | None = None):
     """(module, function) a call refers to, after resolving import aliases. None when it cannot be named.
 
@@ -236,6 +247,11 @@ def resolve_call_key(node: ast.Call, aliases: dict[str, str], types: dict[str, s
             if types and func.value.id in types:
                 return (f"type:{types[func.value.id]}", func.attr)
             module = aliases.get(func.value.id, func.value.id)
+            return (module, func.attr)
+        dotted = _dotted_name(func.value)
+        if dotted:
+            root, *rest = dotted
+            module = ".".join([aliases.get(root, root)] + rest)
             return (module, func.attr)
         return None
     if isinstance(func, ast.Name):

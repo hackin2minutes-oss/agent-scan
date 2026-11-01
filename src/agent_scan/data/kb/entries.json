@@ -351,6 +351,56 @@
       "reference": "https://modelcontextprotocol.io/",
       "test": "tests/test_mcp.py::test_unpinned_package_server_is_flagged",
       "verified": "2026-11-01"
+    },
+    {
+      "id": "UNTRUSTED-HTTP-GET",
+      "kind": "untrusted_call",
+      "module": "requests",
+      "functions": [
+        "get",
+        "post"
+      ],
+      "framework": "python-requests",
+      "arguments": [
+        "url"
+      ],
+      "weakness": "CWE-20",
+      "reference": "https://requests.readthedocs.io/en/latest/api/",
+      "test": "tests/test_retrieval.py::test_fetched_page_passed_to_the_model_is_traced",
+      "verified": "2026-11-01"
+    },
+    {
+      "id": "UNTRUSTED-URLLIB-OPEN",
+      "kind": "untrusted_call",
+      "module": "urllib.request",
+      "functions": [
+        "urlopen"
+      ],
+      "framework": "python-standard-library",
+      "arguments": [
+        "url"
+      ],
+      "weakness": "CWE-20",
+      "reference": "https://docs.python.org/3/library/urllib.request.html#urllib.request.urlopen",
+      "test": "tests/test_retrieval.py::test_urlopen_content_passed_to_the_model_is_traced",
+      "verified": "2026-11-01"
+    },
+    {
+      "id": "MODEL-INPUT-AGENTS-RUNNER",
+      "kind": "prompt_sink",
+      "module": "agents.Runner",
+      "functions": [
+        "run",
+        "run_sync"
+      ],
+      "framework": "openai-agents",
+      "arguments": [
+        "input"
+      ],
+      "weakness": "CWE-1427",
+      "reference": "https://github.com/openai/openai-agents-python/blob/main/src/agents/run.py",
+      "test": "tests/test_retrieval.py::test_fetched_page_passed_to_the_model_is_traced",
+      "verified": "2026-11-01"
     }
   ]
 }

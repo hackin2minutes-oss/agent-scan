@@ -1,22 +1,27 @@
-"""Intra-function taint tracking: a value from model output reaching a sink in the same function.
+"""Intra-function taint tracking: a value from model output, or from untrusted content, reaching a sink.
 
-Sources, sinks and sanitisers come from the knowledge base. The analysis is conservative and limited on purpose:
+Sources, sinks, sanitisers and parameter sources come from the knowledge base. The analysis is conservative and limited
+on purpose:
 
 - Scope: one function body at a time (module level is one scope). Values passed into or returned from another
   function are not followed, and the report says so.
-- Propagation: an assignment whose right-hand side contains a tainted value makes the target tainted. Any
-  reassignment with an untainted value clears the taint. Loops are read in source order once.
+- Propagation: an assignment whose right-hand side contains a tainted value makes the target tainted. Any reassignment
+  with an untainted value clears the taint. Loops are read in source order once.
 - A sanitiser call wrapping a sink argument directly breaks the path for that argument.
-- The result is NEEDS_REVIEW, never a confirmed path: the knowledge base says model output is a source, but nothing
-  in the code shows that an attacker controls it. The trace is reported so a reviewer can follow it.
+- Sources are: model output (the tool-call arguments of a model response), untrusted content fetched by a call in the
+  knowledge base (for example an HTTP response body), and the parameters of functions the framework calls with
+  model-chosen input.
+- Sinks are: shell and eval sinks (rule tainted-value-to-sink), and model input (rule untrusted-content-to-model-input,
+  for content that is fetched from outside and passed to a model, which is indirect prompt injection).
+- The result is NEEDS_REVIEW, never a confirmed path: nothing in the code shows that an attacker controls the content.
 """
 
 import ast
-from pathlib import Path
 
 from agent_scan.scanner import NEEDS_REVIEW, Finding, _decorator_map, import_aliases, receiver_types, resolve_call_key
 
 RULE = "tainted-value-to-sink"
+RULE_MODEL_INPUT = "untrusted-content-to-model-input"
 SOURCE_KIND = "source"
 SANITISER_KIND = "sanitiser"
 
@@ -39,23 +44,27 @@ def _tokens(node: ast.AST) -> list[str] | None:
 
 
 def load_flow_knowledge(entries: list[dict]) -> dict:
-    """Source suffixes, sanitiser keys and parameter sources, from knowledge-base entries.
-
-    A parameter source is a call that hands a function to the framework, which then calls it with model-chosen input.
-    The keyword names the argument that receives the function, so the function's parameters are tainted."""
-    sources = []
-    sanitisers = set()
-    parameter_sources = {}
+    """Source suffixes, sanitiser keys, parameter sources, untrusted-content calls and model-input sinks."""
+    sources, sanitisers, parameter_sources = [], set(), {}
+    untrusted, prompt_sinks = set(), set()
     for entry in entries:
-        if entry.get("kind") == SOURCE_KIND:
+        kind = entry.get("kind")
+        if kind == SOURCE_KIND:
             sources.append(tuple(entry["pattern"].split(".")))
-        elif entry.get("kind") == SANITISER_KIND:
+        elif kind == SANITISER_KIND:
             for function in entry.get("functions", []):
                 sanitisers.add((entry.get("module"), function))
-        elif entry.get("kind") == "parameter_source":
+        elif kind == "parameter_source":
             for function in entry.get("functions", []):
                 parameter_sources[(entry.get("module"), function)] = entry["keyword"]
-    return {"sources": sources, "sanitisers": sanitisers, "parameter_sources": parameter_sources}
+        elif kind == "untrusted_call":
+            for function in entry.get("functions", []):
+                untrusted.add((entry.get("module"), function))
+        elif kind == "prompt_sink":
+            for function in entry.get("functions", []):
+                prompt_sinks.add((entry.get("module"), function))
+    return {"sources": sources, "sanitisers": sanitisers, "parameter_sources": parameter_sources,
+            "untrusted": untrusted, "prompt_sinks": prompt_sinks}
 
 
 def _executor_functions(tree: ast.Module, aliases: dict, parameter_sources: dict) -> dict[int, str]:
@@ -64,7 +73,8 @@ def _executor_functions(tree: ast.Module, aliases: dict, parameter_sources: dict
     A function passed by name is one. An editor class passed as an instance (editor=Editor()) contributes each of its
     methods except __init__. The description names the framework call that receives them."""
     classes = {node.name: node for node in tree.body if isinstance(node, ast.ClassDef)}
-    functions = {node.name: node for node in ast.walk(tree) if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))}
+    functions = {node.name: node for node in ast.walk(tree)
+                 if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))}
     found: dict[int, str] = {}
     for node in ast.walk(tree):
         if not isinstance(node, ast.Call):
@@ -96,10 +106,22 @@ def _source_trace(expr: ast.AST, sources) -> list[str] | None:
     return None
 
 
-def _taint_of(expr: ast.AST, tainted: dict, sources) -> list[str] | None:
+def _untrusted_trace(expr: ast.AST, aliases: dict, types: dict, untrusted: set) -> list[str] | None:
+    for node in ast.walk(expr):
+        if isinstance(node, ast.Call):
+            key = resolve_call_key(node, aliases, types)
+            if key in untrusted:
+                return [f"line {node.lineno}: untrusted content fetched by {key[0] + '.' if key[0] else ''}{key[1]}()"]
+    return None
+
+
+def _taint_of(expr: ast.AST, tainted: dict, sources, knowledge: dict, aliases: dict, types: dict):
     source = _source_trace(expr, sources)
     if source:
         return source
+    fetched = _untrusted_trace(expr, aliases, types, knowledge["untrusted"])
+    if fetched:
+        return fetched
     for node in ast.walk(expr):
         if isinstance(node, ast.Name) and node.id in tainted:
             return tainted[node.id]
@@ -127,11 +149,16 @@ def _scope_events(scope):
     return sorted(events, key=lambda n: (n.lineno, n.col_offset, 0 if isinstance(n, ast.Assign) else 1))
 
 
+def _label(key) -> str:
+    return key[1] if key[0] is None else f"{key[0]}.{key[1]}"
+
+
 def scan_flows(tree: ast.Module, rel_path: str, sinks: set, knowledge: dict) -> list[Finding]:
     sources = knowledge["sources"]
     sanitisers = knowledge["sanitisers"]
+    prompt_sinks = knowledge.get("prompt_sinks", set())
     findings: list[Finding] = []
-    if not sources:
+    if not sources and not knowledge.get("untrusted") and not prompt_sinks:
         return findings
     aliases = import_aliases(tree)
     types = receiver_types(tree, aliases, _decorator_map())
@@ -146,7 +173,7 @@ def scan_flows(tree: ast.Module, rel_path: str, sinks: set, knowledge: dict) -> 
                         f"model-chosen input through {executors[id(scope)]}"]
         for event in _scope_events(scope):
             if isinstance(event, ast.Assign):
-                trace = _taint_of(event.value, tainted, sources)
+                trace = _taint_of(event.value, tainted, sources, knowledge, aliases, types)
                 for target in event.targets:
                     if isinstance(target, ast.Name):
                         if trace:
@@ -155,24 +182,36 @@ def scan_flows(tree: ast.Module, rel_path: str, sinks: set, knowledge: dict) -> 
                             tainted.pop(target.id, None)
                 continue
             key = resolve_call_key(event, aliases, types)
-            if key is None or key not in sinks:
+            if key is None:
+                continue
+            if key in prompt_sinks:
+                rule, reason = RULE_MODEL_INPUT, (
+                    f"content fetched from outside reaches the model through {_label(key)}; a page or file can "
+                    "carry instructions the model follows (indirect prompt injection)")
+                missing = ["whether the fetched content is trusted by the application's design",
+                           "whether the model's tools can act on what the content asks",
+                           "data flow across function boundaries (not followed)"]
+            elif key in sinks:
+                rule, reason = RULE, (
+                    f"model output reaches {_label(key)} in the same function; whether an attacker can influence "
+                    "the model output is not established")
+                missing = ["whether untrusted content can reach the model input (prompt injection)",
+                           "validation or sanitisation between the source and the sink, if any",
+                           "data flow across function boundaries (not followed)"]
+            else:
                 continue
             for argument in event.args:
                 if isinstance(argument, ast.Call) and resolve_call_key(argument, aliases, types) in sanitisers:
                     continue
-                trace = _taint_of(argument, tainted, sources)
+                trace = _taint_of(argument, tainted, sources, knowledge, aliases, types)
                 if trace:
                     findings.append(Finding(
-                        rule=RULE,
+                        rule=rule,
                         path=rel_path,
                         line=event.lineno,
                         verdict=NEEDS_REVIEW,
-                        reason=(f"model output reaches {key[1] if key[0] is None else key[0] + '.' + key[1]} "
-                                "in the same function; whether an attacker can influence the model output is not "
-                                "established"),
-                        missing=["whether untrusted content can reach the model input (prompt injection)",
-                                 "validation or sanitisation between the source and the sink, if any",
-                                 "data flow across function boundaries (not followed)"],
+                        reason=reason,
+                        missing=list(missing),
                         trace=trace + [f"line {event.lineno}: reaches the sink"],
                     ))
                     break
