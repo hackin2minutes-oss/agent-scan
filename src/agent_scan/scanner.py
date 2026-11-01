@@ -340,6 +340,15 @@ def _python_files(root: Path):
         yield path, relative.as_posix()
 
 
+def _typescript_files(root: Path):
+    from agent_scan import tsscan
+    for path in sorted(p for p in root.rglob("*") if p.is_file() and p.suffix in tsscan.SUFFIXES):
+        relative = path.relative_to(root)
+        if any(part in SKIPPED_DIRECTORIES or part.startswith(".") for part in relative.parts[:-1]):
+            continue
+        yield path, relative.as_posix()
+
+
 def scan_path(root: Path, mcp_tools: dict | None = None, mcp_approved: dict | None = None) -> ScanResult:
     """Scan a directory. mcp_tools is a parsed tools/list document; mcp_approved is {"server": name, "tools": {name:
     hash}}. Both are needed for the tool-description check, and neither is read from the project."""
@@ -389,4 +398,18 @@ def scan_path(root: Path, mcp_tools: dict | None = None, mcp_approved: dict | No
                                            ["a readable UTF-8 file"]))
             continue
         result.findings.extend(scan_source(source, relative, sinks))
+    from agent_scan import tsscan
+    ts_files = list(_typescript_files(root))
+    if ts_files and not tsscan.available():
+        result.findings.append(Finding("typescript-analyser-unavailable", ts_files[0][1], 1, UNKNOWN,
+                                       "the TypeScript analyser is not installed, so TypeScript and JavaScript were not analysed",
+                                       ["tree-sitter and tree-sitter-typescript installed"]))
+    for path, relative in ts_files if tsscan.available() else []:
+        result.files_scanned += 1
+        try:
+            result.findings.extend(tsscan.scan_file(path, relative))
+        except (OSError, UnicodeDecodeError):
+            result.findings.append(Finding("unreadable-file", relative, 1, UNKNOWN,
+                                           "the file could not be read as UTF-8 text",
+                                           ["a readable UTF-8 file"]))
     return result
