@@ -64,7 +64,13 @@ class SignedPackTest(unittest.TestCase):
         self.assertFalse(result.ok)
 
     def test_an_unsigned_pack_verifies_for_integrity_only(self):
-        result = kb.verify(kb.PACK_DIR)
+        with tempfile.TemporaryDirectory() as tmp:
+            pack = Path(tmp) / "kb"
+            shutil.copytree(kb.PACK_DIR, pack)
+            data = json.loads((pack / kb.MANIFEST_NAME).read_text(encoding="utf-8"))
+            data["signature"] = None
+            (pack / kb.MANIFEST_NAME).write_text(json.dumps(data), encoding="utf-8")
+            result = kb.verify(pack)
         self.assertTrue(result.ok)
         self.assertFalse(result.signed)
 

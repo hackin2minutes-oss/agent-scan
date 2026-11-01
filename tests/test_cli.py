@@ -70,7 +70,11 @@ class KbCommandTest(unittest.TestCase):
         code, out, _ = run_cli("kb", "status")
         self.assertEqual(code, cli.EXIT_OK)
         self.assertIn("verified", out)
-        self.assertIn("integrity only", out)
+        shipped = json.loads((kb.PACK_DIR / "manifest.json").read_text(encoding="utf-8"))
+        if shipped.get("signature"):
+            self.assertIn("signed: yes", out)
+        else:
+            self.assertIn("integrity only", out)
 
     def test_kb_verify_passes_on_the_shipped_pack(self):
         code, out, _ = run_cli("kb", "verify")

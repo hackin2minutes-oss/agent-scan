@@ -19,7 +19,8 @@ class KnowledgeBaseIntegrityTest(unittest.TestCase):
         result = kb.verify(self.pack)
         self.assertTrue(result.ok, result.problems)
         self.assertEqual(result.version, "0.0.1")
-        self.assertFalse(result.signed)
+        shipped = json.loads((PACK / "manifest.json").read_text(encoding="utf-8"))
+        self.assertEqual(result.signed, bool(shipped.get("signature")))
 
     def test_a_changed_file_fails_verification(self):
         (self.pack / "entries.json").write_text("{}", encoding="utf-8")
