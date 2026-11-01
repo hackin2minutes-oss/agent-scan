@@ -304,6 +304,18 @@ def scan_source(source: str, rel_path: str, sinks: set[tuple] | None = None) -> 
     return findings
 
 
+def _mcp_config_files(root: Path):
+    from agent_scan import mcp
+    for path in sorted(root.rglob("*.json")):
+        if not path.is_file():
+            continue
+        relative = path.relative_to(root).as_posix()
+        if any(part in {".git", ".venv", "node_modules"} for part in path.relative_to(root).parts[:-1]):
+            continue
+        if mcp.is_mcp_config(relative):
+            yield path, relative
+
+
 def _python_files(root: Path):
     for path in sorted(root.rglob("*.py")):
         relative = path.relative_to(root)
@@ -312,12 +324,30 @@ def _python_files(root: Path):
         yield path, relative.as_posix()
 
 
-def scan_path(root: Path) -> ScanResult:
+def scan_path(root: Path, mcp_tools: dict | None = None, mcp_approved: dict | None = None) -> ScanResult:
+    """Scan a directory. mcp_tools is a parsed tools/list document; mcp_approved is {"server": name, "tools": {name:
+    hash}}. Both are needed for the tool-description check, and neither is read from the project."""
     root = Path(root)
     result = ScanResult(root=str(root))
     sinks = _load_sinks()
-    from agent_scan import kb, textscan
+    from agent_scan import kb, mcp, textscan
     text_rules = textscan.text_rules(kb.entries())
+    mcp_rules = {entry["rule"]: entry["commands"] for entry in kb.entries() if entry.get("kind") == "mcp_rule"}
+    for path, relative in _mcp_config_files(root):
+        result.files_scanned += 1
+        try:
+            text = path.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            result.findings.append(Finding("unreadable-file", relative, 1, "UNKNOWN",
+                                           "the MCP configuration could not be read as UTF-8 text",
+                                           ["a readable UTF-8 file"]))
+            continue
+        result.findings.extend(mcp.check_config(text, relative, mcp_rules))
+    if mcp_tools is not None:
+        from agent_scan import mcp as mcp_module
+        approved = (mcp_approved or {}).get("tools", {})
+        server = (mcp_approved or {}).get("server", "mcp-server")
+        result.findings.extend(mcp_module.check_tools(mcp_module.tools_from(mcp_tools), approved, text_rules, server))
     for path, relative in textscan.rule_files(root):
         result.files_scanned += 1
         if path.stat().st_size > textscan.MAX_BYTES:

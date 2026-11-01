@@ -36,8 +36,10 @@ def _cmd_scan(args) -> int:
         print(f"scan could not complete: {args.path} is not a directory", file=sys.stderr)
         return EXIT_ERROR
     try:
-        result = scanner.scan_path(args.path)
-    except OSError as exc:
+        mcp_tools = _load_json(args.mcp_tools) if args.mcp_tools else None
+        mcp_approved = _load_json(args.mcp_approved) if args.mcp_approved else None
+        result = scanner.scan_path(args.path, mcp_tools=mcp_tools, mcp_approved=mcp_approved)
+    except (OSError, ValueError) as exc:
         print(f"scan could not complete: {exc}", file=sys.stderr)
         return EXIT_ERROR
     if args.format == "sarif":
@@ -70,6 +72,21 @@ def _cmd_kb_verify(_args) -> int:
     return EXIT_OK if check.ok else EXIT_ERROR
 
 
+def _load_json(path: str):
+    return json.loads(Path(path).read_text(encoding="utf-8"))
+
+
+def _cmd_mcp_hash(args) -> int:
+    from agent_scan import mcp
+    try:
+        tools = mcp.tools_from(_load_json(args.file))
+    except (OSError, ValueError) as exc:
+        print(f"could not read the tool list: {exc}", file=sys.stderr)
+        return EXIT_ERROR
+    print(json.dumps({"server": args.server, "tools": {t["name"]: mcp.tool_hash(t) for t in tools}}, indent=2))
+    return EXIT_OK
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="agent-scan", description="Security scanner for AI and agent code.")
     commands = parser.add_subparsers(dest="command", required=True)
@@ -78,6 +95,8 @@ def build_parser() -> argparse.ArgumentParser:
     scan.add_argument("--format", choices=["text", "json", "sarif"], default="text",
                       help="output format: text (default), json, or sarif 2.1.0")
     scan.add_argument("--json", action="store_true", help="same as --format json")
+    scan.add_argument("--mcp-tools", help="saved tools/list output of an MCP server, to check its tool descriptions")
+    scan.add_argument("--mcp-approved", help="approved hashes for those tools, as written by 'mcp hash'")
     scan.set_defaults(handler=_cmd_scan)
     kb_parser = commands.add_parser("kb", help="knowledge base commands")
     kb_commands = kb_parser.add_subparsers(dest="kb_command", required=True)
@@ -85,6 +104,12 @@ def build_parser() -> argparse.ArgumentParser:
         handler=_cmd_kb_status)
     kb_commands.add_parser("verify", help="verify the knowledge base files against the manifest").set_defaults(
         handler=_cmd_kb_verify)
+    mcp_parser = commands.add_parser("mcp", help="MCP tool-description commands")
+    mcp_commands = mcp_parser.add_subparsers(dest="mcp_command", required=True)
+    mcp_hash = mcp_commands.add_parser("hash", help="hash each tool of a saved tools/list output, for approval")
+    mcp_hash.add_argument("file")
+    mcp_hash.add_argument("--server", default="mcp-server")
+    mcp_hash.set_defaults(handler=_cmd_mcp_hash)
     commands.add_parser("version", help="print the version").set_defaults(
         handler=lambda _args: print(__version__) or EXIT_OK)
     return parser

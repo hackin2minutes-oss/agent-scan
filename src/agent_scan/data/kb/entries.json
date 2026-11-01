@@ -306,6 +306,51 @@
       "reference": "https://cwe.mitre.org/data/definitions/798.html",
       "test": "tests/test_rules_files.py::test_credential_in_rules_is_flagged_and_redacted",
       "verified": "2026-11-01"
+    },
+    {
+      "id": "TEXT-TOOL-POISONING",
+      "kind": "text_rule",
+      "rule": "tool-poisoning-phrase",
+      "pattern": "(?i)(?:do not (?:tell|mention|inform|show)|without (?:telling|informing|showing) the user|<important>|ignore (?:all )?(?:previous|prior|above) instructions|before (?:using|calling) this tool,? (?:first )?(?:read|send|fetch))",
+      "message": "a tool description that instructs the model or hides its behaviour from the user (tool poisoning)",
+      "framework": "mcp",
+      "weakness": "CWE-1427",
+      "reference": "https://genai.owasp.org/",
+      "test": "tests/test_mcp.py::test_tool_description_with_hidden_instruction_is_flagged",
+      "verified": "2026-11-01"
+    },
+    {
+      "id": "MCP-CONFIG-SHELL-SERVER",
+      "kind": "mcp_rule",
+      "rule": "shell-capable-mcp-server",
+      "commands": [
+        "bash",
+        "sh",
+        "zsh",
+        "cmd",
+        "powershell"
+      ],
+      "framework": "mcp",
+      "weakness": "CWE-78",
+      "reference": "https://modelcontextprotocol.io/",
+      "test": "tests/test_mcp.py::test_shell_launched_mcp_server_is_flagged",
+      "verified": "2026-11-01"
+    },
+    {
+      "id": "MCP-CONFIG-UNPINNED-PACKAGE",
+      "kind": "mcp_rule",
+      "rule": "unpinned-mcp-package",
+      "commands": [
+        "npx",
+        "uvx",
+        "pipx",
+        "bunx"
+      ],
+      "framework": "mcp",
+      "weakness": "CWE-1104",
+      "reference": "https://modelcontextprotocol.io/",
+      "test": "tests/test_mcp.py::test_unpinned_package_server_is_flagged",
+      "verified": "2026-11-01"
     }
   ]
 }
