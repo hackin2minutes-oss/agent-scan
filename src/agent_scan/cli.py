@@ -5,7 +5,7 @@ import json
 import sys
 from pathlib import Path
 
-from agent_scan import __version__, kb, scanner
+from agent_scan import __version__, kb, sarif, scanner
 
 EXIT_OK = 0
 EXIT_CONFIRMED = 1
@@ -40,7 +40,9 @@ def _cmd_scan(args) -> int:
     except OSError as exc:
         print(f"scan could not complete: {exc}", file=sys.stderr)
         return EXIT_ERROR
-    if args.json:
+    if args.format == "sarif":
+        print(json.dumps(sarif.to_sarif(result, check.version), indent=2))
+    elif args.format == "json" or args.json:
         print(json.dumps({"agent_scan": __version__, "knowledge_base": check.version,
                           "root": result.root, "files_scanned": result.files_scanned,
                           "counts": result.counts(),
@@ -73,7 +75,9 @@ def build_parser() -> argparse.ArgumentParser:
     commands = parser.add_subparsers(dest="command", required=True)
     scan = commands.add_parser("scan", help="scan a directory of Python code")
     scan.add_argument("path", nargs="?", default=".")
-    scan.add_argument("--json", action="store_true", help="print the full result as JSON")
+    scan.add_argument("--format", choices=["text", "json", "sarif"], default="text",
+                      help="output format: text (default), json, or sarif 2.1.0")
+    scan.add_argument("--json", action="store_true", help="same as --format json")
     scan.set_defaults(handler=_cmd_scan)
     kb_parser = commands.add_parser("kb", help="knowledge base commands")
     kb_commands = kb_parser.add_subparsers(dest="kb_command", required=True)
