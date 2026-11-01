@@ -96,7 +96,8 @@ def verify(pack_dir: Path = PACK_DIR, trust_dir: Path | None = None) -> VerifyRe
         manifest = load_manifest(pack_dir)
     except (OSError, ValueError) as exc:
         return VerifyResult(False, "unknown", [f"manifest could not be read: {type(exc).__name__}"])
-    problems = list(signature_problems(manifest, trusted_public_keys(trust_dir or pack_dir / "trust")))
+    # Trusted keys come only from the installed package, never from the pack being checked.
+    problems = list(signature_problems(manifest, trusted_public_keys(trust_dir or TRUST_DIR)))
     listed = manifest.get("files", {})
     for name, expected in sorted(listed.items()):
         path = pack_dir / name
@@ -111,8 +112,45 @@ def verify(pack_dir: Path = PACK_DIR, trust_dir: Path | None = None) -> VerifyRe
                         signed=manifest.get("signature") is not None)
 
 
-def entries(pack_dir: Path = PACK_DIR) -> list[dict]:
-    return json.loads((pack_dir / "entries.json").read_text(encoding="utf-8"))["entries"]
+_cache: dict = {}
+
+
+def _stamp(directory: Path) -> tuple:
+    """Changes when the manifest or the entries file changes, so cached results are not stale."""
+    parts = []
+    for name in (MANIFEST_NAME, "entries.json"):
+        try:
+            stat = (directory / name).stat()
+            parts.append((stat.st_mtime_ns, stat.st_size))
+        except OSError:
+            parts.append(None)
+    return tuple(parts)
+
+
+def current_pack_dir() -> Path:
+    """The pack in use: an activated update if it verifies, otherwise the pack shipped with the package.
+
+    The verification result is cached per pack and is recomputed when the pack's files change, so a scan of many files
+    verifies the pack once rather than once per file."""
+    try:
+        from agent_scan import update
+        active = update.active_root() / "current"
+    except Exception:
+        return PACK_DIR
+    if not active.is_dir():
+        return PACK_DIR
+    key = ("current", str(active), str(TRUST_DIR), _stamp(active))
+    if key not in _cache:
+        _cache[key] = verify(active).ok
+    return active if _cache[key] else PACK_DIR
+
+
+def entries(pack_dir: Path | None = None) -> list[dict]:
+    directory = pack_dir or current_pack_dir()
+    key = ("entries", str(directory), _stamp(directory))
+    if key not in _cache:
+        _cache[key] = json.loads((directory / "entries.json").read_text(encoding="utf-8"))["entries"]
+    return _cache[key]
 
 
 def write_manifest(pack_dir: Path = PACK_DIR, version: str = "0.0.1") -> dict:

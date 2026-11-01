@@ -63,6 +63,7 @@ def _cmd_scan(args) -> int:
 
 def _cmd_kb_status(_args) -> int:
     check = kb.verify()
+    print(f"knowledge base in use: {kb.current_pack_dir()}")
     print(f"knowledge base {check.version}: {'verified' if check.ok else 'NOT verified'}; "
           f"signed: {'yes' if check.signed else 'no (integrity only)'}; "
           f"entries: {len(kb.entries())}")
@@ -94,6 +95,43 @@ def _cmd_mcp_hash(args) -> int:
     return EXIT_OK
 
 
+def _cmd_kb_update(args) -> int:
+    from agent_scan import update
+    from agent_scan import kb as kb_module
+    try:
+        config = update.load_config(Path(args.config) if args.config else update.default_config_path())
+        if not config.sources:
+            print("no update source is allowlisted; add knowledge_base_sources to the configuration", file=sys.stderr)
+            return EXIT_ERROR
+        current = kb_module.verify(kb_module.current_pack_dir())
+        errors = []
+        for source in config.sources if args.source is None else [args.source]:
+            try:
+                staging, version = update.stage_and_verify(source, config, current_version=current.version)
+                update.activate(staging)
+                print(f"knowledge base {version} activated from {source}")
+                return EXIT_OK
+            except update.UpdateError as exc:
+                errors.append(f"{source}: {exc}")
+        for error in errors:
+            print(error, file=sys.stderr)
+        return EXIT_ERROR
+    except update.UpdateError as exc:
+        print(str(exc), file=sys.stderr)
+        return EXIT_ERROR
+
+
+def _cmd_kb_rollback(_args) -> int:
+    from agent_scan import update
+    try:
+        update.rollback()
+    except update.UpdateError as exc:
+        print(str(exc), file=sys.stderr)
+        return EXIT_ERROR
+    print("rolled back to the previous knowledge-base pack")
+    return EXIT_OK
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="agent-scan", description="Security scanner for AI and agent code.")
     commands = parser.add_subparsers(dest="command", required=True)
@@ -112,6 +150,12 @@ def build_parser() -> argparse.ArgumentParser:
         handler=_cmd_kb_status)
     kb_commands.add_parser("verify", help="verify the knowledge base files against the manifest").set_defaults(
         handler=_cmd_kb_verify)
+    update_parser = kb_commands.add_parser("update", help="fetch and activate an update from an allowlisted source")
+    update_parser.add_argument("--config", help="configuration file with knowledge_base_sources")
+    update_parser.add_argument("--source", help="use only this allowlisted source")
+    update_parser.set_defaults(handler=_cmd_kb_update)
+    kb_commands.add_parser("rollback", help="restore the previous knowledge-base pack").set_defaults(
+        handler=_cmd_kb_rollback)
     mcp_parser = commands.add_parser("mcp", help="MCP tool-description commands")
     mcp_commands = mcp_parser.add_subparsers(dest="mcp_command", required=True)
     mcp_hash = mcp_commands.add_parser("hash", help="hash each tool of a saved tools/list output, for approval")

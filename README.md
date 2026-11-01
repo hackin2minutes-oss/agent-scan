@@ -16,6 +16,23 @@ agent-scan scan path/to/project --json
 agent-scan kb status
 ```
 
+## Knowledge-base updates
+
+Updates come only from sources listed in a configuration file, over https (plain http only for localhost):
+
+```
+{ "knowledge_base_sources": ["https://updates.example.org/agent-scan/"] }
+```
+
+```
+agent-scan kb update --config ~/.config/agent-scan/config.json
+agent-scan kb rollback
+```
+
+An update is downloaded, checked against the hashes in its manifest, checked for an Ed25519 signature from a key
+shipped with the package, and refused if it is not newer. A failed update leaves the pack in use unchanged. The release
+signing key is not in this repository; the release process holds it.
+
 ## Container
 
 ```
