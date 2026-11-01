@@ -183,6 +183,27 @@
       "reference": "https://github.com/openai/openai-agents-python/blob/main/src/agents/tool.py",
       "test": "tests/test_receiver.py::test_agents_function_tool_decorator_makes_on_invoke_tool_a_sink",
       "verified": "2026-11-01"
+    },
+    {
+      "id": "LOOP-AGENTS-RUNNER-MAX-TURNS",
+      "kind": "loop",
+      "module": "agents.Runner",
+      "functions": [
+        "run",
+        "run_sync"
+      ],
+      "keyword": "max_turns",
+      "unbounded_values": [
+        null
+      ],
+      "framework": "openai-agents",
+      "arguments": [
+        "max_turns"
+      ],
+      "weakness": "CWE-834",
+      "reference": "https://github.com/openai/openai-agents-python/blob/main/src/agents/run.py",
+      "test": "tests/test_loops.py::test_explicit_none_max_turns_is_flagged",
+      "verified": "2026-11-01"
     }
   ]
 }

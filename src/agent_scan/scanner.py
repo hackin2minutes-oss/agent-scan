@@ -43,6 +43,45 @@ def _decorator_map() -> dict[tuple, str]:
     return mapping
 
 
+def loop_rules(entries_list: list[dict]) -> dict[tuple, tuple]:
+    """(module, function) -> (keyword, unbounded values) for agent-loop entries in the knowledge base."""
+    rules = {}
+    for entry in entries_list:
+        if entry.get("kind") != "loop":
+            continue
+        for function in entry.get("functions", []):
+            rules[(entry.get("module"), function)] = (entry["keyword"], entry.get("unbounded_values", []))
+    return rules
+
+
+def _loop_findings(tree: ast.AST, rel_path: str, aliases: dict[str, str], types: dict[str, str]) -> list["Finding"]:
+    from agent_scan import kb
+    rules = loop_rules(kb.entries())
+    findings = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        key = resolve_call_key(node, aliases, types)
+        if key not in rules:
+            continue
+        keyword, unbounded = rules[key]
+        for argument in node.keywords:
+            if argument.arg != keyword or not isinstance(argument.value, ast.Constant):
+                continue
+            if argument.value.value in unbounded:
+                findings.append(Finding(
+                    rule="unbounded-agent-loop",
+                    path=rel_path,
+                    line=node.lineno,
+                    verdict=NEEDS_REVIEW,
+                    reason=f"{keyword}=None removes the turn limit on {key[0]}.{key[1]}; the agent can loop without "
+                           "a bound",
+                    missing=["whether untrusted content can keep the agent looping",
+                             "whether a timeout or outer limit bounds the run"],
+                ))
+    return findings
+
+
 def _load_sinks() -> set[tuple]:
     from agent_scan import kb
     return sink_keys(kb.entries())
@@ -179,6 +218,7 @@ def scan_source(source: str, rel_path: str, sinks: set[tuple] | None = None) -> 
     findings.extend(flow.scan_flows(tree, rel_path, sinks, knowledge))
     aliases = import_aliases(tree)
     types = receiver_types(tree, aliases, _decorator_map())
+    findings.extend(_loop_findings(tree, rel_path, aliases, types))
     for node in ast.walk(tree):
         if not isinstance(node, ast.Call):
             continue
