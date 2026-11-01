@@ -33,6 +33,16 @@ def sink_keys(entries_list: list[dict]) -> set[tuple]:
     return keys
 
 
+def _decorator_map() -> dict[tuple, str]:
+    from agent_scan import kb
+    mapping = {}
+    for entry in kb.entries():
+        if entry.get("kind") == "decorator":
+            for function in entry.get("functions", []):
+                mapping[(entry.get("module"), function)] = entry["produces"]
+    return mapping
+
+
 def _load_sinks() -> set[tuple]:
     from agent_scan import kb
     return sink_keys(kb.entries())
@@ -89,13 +99,46 @@ def import_aliases(tree: ast.AST) -> dict[str, str]:
     return aliases
 
 
-def resolve_call_key(node: ast.Call, aliases: dict[str, str]):
+def receiver_types(tree: ast.AST, aliases: dict[str, str], decorators: set[tuple]) -> dict[str, str]:
+    """Names this file binds to a known object type, by a decorator in the knowledge base.
+
+    A function decorated with a decorator that produces "tool" makes its name a tool object. Only these bindings are
+    known: other constructors are not in the knowledge base yet, so their methods are not sinks."""
+    types: dict[str, str] = {}
+    for node in ast.walk(tree):
+        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            continue
+        for decorator in node.decorator_list:
+            target = decorator.func if isinstance(decorator, ast.Call) else decorator
+            if not isinstance(target, (ast.Name, ast.Attribute)):
+                continue
+            key = _name_key(target, aliases)
+            if key in decorators:
+                types[node.name] = decorators[key]
+    return types
+
+
+def _name_key(node, aliases: dict[str, str]):
+    if isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name):
+        return (aliases.get(node.value.id, node.value.id), node.attr)
+    if isinstance(node, ast.Name):
+        if node.id in aliases:
+            module, _, name = aliases[node.id].rpartition(".")
+            return (module or None, name)
+        return (None, node.id)
+    return None
+
+
+def resolve_call_key(node: ast.Call, aliases: dict[str, str], types: dict[str, str] | None = None):
     """(module, function) a call refers to, after resolving import aliases. None when it cannot be named.
 
-    A bare name that is not imported is a builtin (module None), so a local function called run() is not a sink."""
+    A bare name that is not imported is a builtin (module None), so a local function called run() is not a sink.
+    A method on a name with a known object type is keyed as ("type:<type>", method)."""
     func = node.func
     if isinstance(func, ast.Attribute):
         if isinstance(func.value, ast.Name):
+            if types and func.value.id in types:
+                return (f"type:{types[func.value.id]}", func.attr)
             module = aliases.get(func.value.id, func.value.id)
             return (module, func.attr)
         return None
@@ -135,15 +178,21 @@ def scan_source(source: str, rel_path: str, sinks: set[tuple] | None = None) -> 
     knowledge = flow.load_flow_knowledge(kb.entries())
     findings.extend(flow.scan_flows(tree, rel_path, sinks, knowledge))
     aliases = import_aliases(tree)
+    types = receiver_types(tree, aliases, _decorator_map())
     for node in ast.walk(tree):
         if not isinstance(node, ast.Call):
             continue
-        key = resolve_call_key(node, aliases)
+        key = resolve_call_key(node, aliases, types)
         if key is None or not node.args:
             continue
         if key not in sinks:
             continue
-        rule = "eval-sink-non-literal" if key[0] is None else "shell-sink-non-literal"
+        if key[0] is None:
+            rule = "eval-sink-non-literal"
+        elif key[0].startswith("type:"):
+            rule = "tool-sink-non-literal"
+        else:
+            rule = "shell-sink-non-literal"
         if all(_is_literal(argument) for argument in node.args):
             continue
         findings.append(Finding(

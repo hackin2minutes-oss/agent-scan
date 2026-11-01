@@ -14,7 +14,7 @@ Sources, sinks and sanitisers come from the knowledge base. The analysis is cons
 import ast
 from pathlib import Path
 
-from agent_scan.scanner import NEEDS_REVIEW, Finding, import_aliases, resolve_call_key
+from agent_scan.scanner import NEEDS_REVIEW, Finding, _decorator_map, import_aliases, receiver_types, resolve_call_key
 
 RULE = "tainted-value-to-sink"
 SOURCE_KIND = "source"
@@ -98,6 +98,7 @@ def scan_flows(tree: ast.Module, rel_path: str, sinks: set, knowledge: dict) -> 
     if not sources:
         return findings
     aliases = import_aliases(tree)
+    types = receiver_types(tree, aliases, _decorator_map())
     for scope in _scopes(tree):
         tainted: dict[str, list[str]] = {}
         for event in _scope_events(scope):
@@ -110,11 +111,11 @@ def scan_flows(tree: ast.Module, rel_path: str, sinks: set, knowledge: dict) -> 
                         else:
                             tainted.pop(target.id, None)
                 continue
-            key = resolve_call_key(event, aliases)
+            key = resolve_call_key(event, aliases, types)
             if key is None or key not in sinks:
                 continue
             for argument in event.args:
-                if isinstance(argument, ast.Call) and resolve_call_key(argument, aliases) in sanitisers:
+                if isinstance(argument, ast.Call) and resolve_call_key(argument, aliases, types) in sanitisers:
                     continue
                 trace = _taint_of(argument, tainted, sources)
                 if trace:

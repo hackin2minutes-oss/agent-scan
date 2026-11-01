@@ -113,6 +113,76 @@
       "reference": "https://docs.python.org/3/library/shlex.html#shlex.quote",
       "test": "tests/test_flow.py::test_shlex_quote_around_the_sink_argument_breaks_the_path",
       "verified": "2026-11-01"
+    },
+    {
+      "id": "DECORATOR-LANGCHAIN-TOOL",
+      "kind": "decorator",
+      "module": "langchain_core.tools",
+      "functions": [
+        "tool"
+      ],
+      "produces": "tool",
+      "framework": "langchain-core",
+      "arguments": [
+        "function"
+      ],
+      "weakness": "CWE-20",
+      "reference": "https://github.com/langchain-ai/langchain/tree/master/libs/core/langchain_core/tools",
+      "test": "tests/test_receiver.py::test_langchain_tool_decorator_makes_invoke_a_sink",
+      "verified": "2026-11-01"
+    },
+    {
+      "id": "DECORATOR-AGENTS-FUNCTION-TOOL",
+      "kind": "decorator",
+      "module": "agents",
+      "functions": [
+        "function_tool"
+      ],
+      "produces": "tool",
+      "framework": "openai-agents",
+      "arguments": [
+        "function"
+      ],
+      "weakness": "CWE-20",
+      "reference": "https://github.com/openai/openai-agents-python/blob/main/src/agents/tool.py",
+      "test": "tests/test_receiver.py::test_agents_function_tool_decorator_makes_on_invoke_tool_a_sink",
+      "verified": "2026-11-01"
+    },
+    {
+      "id": "SINK-LANGCHAIN-TOOL-METHODS",
+      "kind": "sink",
+      "module": "type:tool",
+      "functions": [
+        "invoke",
+        "run",
+        "ainvoke",
+        "arun"
+      ],
+      "framework": "langchain-core",
+      "arguments": [
+        "tool_input"
+      ],
+      "weakness": "CWE-78",
+      "reference": "https://github.com/langchain-ai/langchain/blob/master/libs/core/langchain_core/tools/base.py",
+      "test": "tests/test_receiver.py::test_langchain_tool_decorator_makes_invoke_a_sink",
+      "verified": "2026-11-01"
+    },
+    {
+      "id": "SINK-AGENTS-TOOL-METHODS",
+      "kind": "sink",
+      "module": "type:tool",
+      "functions": [
+        "on_invoke_tool"
+      ],
+      "framework": "openai-agents",
+      "arguments": [
+        "tool_context",
+        "arguments"
+      ],
+      "weakness": "CWE-78",
+      "reference": "https://github.com/openai/openai-agents-python/blob/main/src/agents/tool.py",
+      "test": "tests/test_receiver.py::test_agents_function_tool_decorator_makes_on_invoke_tool_a_sink",
+      "verified": "2026-11-01"
     }
   ]
 }
