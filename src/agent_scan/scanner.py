@@ -82,6 +82,63 @@ def _loop_findings(tree: ast.AST, rel_path: str, aliases: dict[str, str], types:
     return findings
 
 
+def approval_rules(entries_list: list[dict]) -> dict[tuple, str]:
+    """(module, function) of a tool decorator -> the keyword that sets its approval requirement."""
+    return {(entry.get("module"), function): entry["keyword"]
+            for entry in entries_list if entry.get("kind") == "approval"
+            for function in entry.get("functions", [])}
+
+
+def _approval_findings(tree: ast.AST, rel_path: str, aliases: dict[str, str], sinks: set) -> list["Finding"]:
+    from agent_scan import kb
+    entries_list = kb.entries()
+    rules = approval_rules(entries_list)
+    missing = {(e.get("module"), f): e.get("missing_values", [False])
+               for e in entries_list if e.get("kind") == "approval" for f in e.get("functions", [])}
+    findings = []
+    for node in ast.walk(tree):
+        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            continue
+        for decorator in node.decorator_list:
+            call = decorator if isinstance(decorator, ast.Call) else None
+            target = decorator.func if call else decorator
+            key = _name_key(target, aliases)
+            if key not in rules:
+                continue
+            keyword = rules[key]
+            value = None
+            present = False
+            if call:
+                for argument in call.keywords:
+                    if argument.arg == keyword:
+                        present = True
+                        value = argument.value
+            if present and not (isinstance(value, ast.Constant) and value.value in missing[key]):
+                continue  # approval is set to something other than the unapproved values, or is a callable
+            reached = _sink_in_body(node, aliases, sinks)
+            if reached:
+                findings.append(Finding(
+                    rule="tool-reaches-sink-without-approval",
+                    path=rel_path,
+                    line=node.lineno,
+                    verdict=NEEDS_REVIEW,
+                    reason=f"tool {node.name} calls {reached} and has no {keyword}=True, so it runs without a "
+                           "human approval step",
+                    missing=["whether the tool's arguments can be chosen by a model or by untrusted content",
+                             "whether an approval callable is used elsewhere"],
+                ))
+    return findings
+
+
+def _sink_in_body(function: ast.AST, aliases: dict[str, str], sinks: set):
+    for node in ast.walk(function):
+        if isinstance(node, ast.Call):
+            key = resolve_call_key(node, aliases)
+            if key in sinks and node.args and not all(_is_literal(a) for a in node.args):
+                return f"{key[0] + '.' if key[0] else ''}{key[1]}"
+    return None
+
+
 def _load_sinks() -> set[tuple]:
     from agent_scan import kb
     return sink_keys(kb.entries())
@@ -219,6 +276,7 @@ def scan_source(source: str, rel_path: str, sinks: set[tuple] | None = None) -> 
     aliases = import_aliases(tree)
     types = receiver_types(tree, aliases, _decorator_map())
     findings.extend(_loop_findings(tree, rel_path, aliases, types))
+    findings.extend(_approval_findings(tree, rel_path, aliases, sinks))
     for node in ast.walk(tree):
         if not isinstance(node, ast.Call):
             continue

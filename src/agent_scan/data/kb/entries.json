@@ -204,6 +204,26 @@
       "reference": "https://github.com/openai/openai-agents-python/blob/main/src/agents/run.py",
       "test": "tests/test_loops.py::test_explicit_none_max_turns_is_flagged",
       "verified": "2026-11-01"
+    },
+    {
+      "id": "APPROVAL-AGENTS-FUNCTION-TOOL",
+      "kind": "approval",
+      "module": "agents",
+      "functions": [
+        "function_tool"
+      ],
+      "keyword": "needs_approval",
+      "missing_values": [
+        false
+      ],
+      "framework": "openai-agents",
+      "arguments": [
+        "needs_approval"
+      ],
+      "weakness": "CWE-862",
+      "reference": "https://github.com/openai/openai-agents-python/blob/main/src/agents/tool.py",
+      "test": "tests/test_approval.py::test_function_tool_reaching_a_sink_without_approval_is_flagged",
+      "verified": "2026-11-01"
     }
   ]
 }
