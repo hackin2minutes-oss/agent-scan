@@ -1,0 +1,9 @@
+{
+  "labels": [
+    {
+      "file": ".mcp.json",
+      "line": 1,
+      "rule": "remote-mcp-over-plain-http"
+    }
+  ]
+}

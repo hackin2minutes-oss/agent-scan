@@ -1,0 +1,9 @@
+{
+  "labels": [
+    {
+      "file": ".mcp.json",
+      "line": 1,
+      "rule": "shell-capable-mcp-server"
+    }
+  ]
+}

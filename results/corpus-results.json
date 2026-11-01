@@ -1,0 +1,236 @@
+{
+  "labelling": "author-labelled; no independent second labeller; inter-rater agreement not measured",
+  "cases": 23,
+  "cases_agreeing": 23,
+  "totals": {
+    "tp": 20,
+    "fp": 0,
+    "fn": 0
+  },
+  "per_rule": {
+    "approval-bypass-directive": {
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "credential-in-rules": {
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "eval-sink-non-literal": {
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "hidden-text-in-rules": {
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "remote-mcp-over-plain-http": {
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "shell-capable-mcp-server": {
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "shell-sink-non-literal": {
+      "tp": 8,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "tainted-value-to-sink": {
+      "tp": 2,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "tool-reaches-sink-without-approval": {
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "tool-sink-non-literal": {
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "unbounded-agent-loop": {
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "untrusted-content-to-model-input": {
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1.0,
+      "recall": 1.0
+    }
+  },
+  "case_results": [
+    {
+      "case": "default-turns-negative",
+      "expected": 0,
+      "reported": 0,
+      "agree": true
+    },
+    {
+      "case": "eval-positive",
+      "expected": 1,
+      "reported": 1,
+      "agree": true
+    },
+    {
+      "case": "fetched-page-not-to-model-negative",
+      "expected": 0,
+      "reported": 0,
+      "agree": true
+    },
+    {
+      "case": "fetched-page-to-model-positive",
+      "expected": 1,
+      "reported": 1,
+      "agree": true
+    },
+    {
+      "case": "instruction-file-approval-bypass-positive",
+      "expected": 1,
+      "reported": 1,
+      "agree": true
+    },
+    {
+      "case": "instruction-file-clean-negative",
+      "expected": 0,
+      "reported": 0,
+      "agree": true
+    },
+    {
+      "case": "instruction-file-credential-positive",
+      "expected": 1,
+      "reported": 1,
+      "agree": true
+    },
+    {
+      "case": "instruction-file-hidden-text-positive",
+      "expected": 1,
+      "reported": 1,
+      "agree": true
+    },
+    {
+      "case": "local-shell-executor-positive",
+      "expected": 2,
+      "reported": 2,
+      "agree": true
+    },
+    {
+      "case": "mcp-https-negative",
+      "expected": 0,
+      "reported": 0,
+      "agree": true
+    },
+    {
+      "case": "mcp-plain-http-positive",
+      "expected": 1,
+      "reported": 1,
+      "agree": true
+    },
+    {
+      "case": "mcp-shell-server-positive",
+      "expected": 1,
+      "reported": 1,
+      "agree": true
+    },
+    {
+      "case": "shell-literal-negative",
+      "expected": 0,
+      "reported": 0,
+      "agree": true
+    },
+    {
+      "case": "shell-variable-positive",
+      "expected": 1,
+      "reported": 1,
+      "agree": true
+    },
+    {
+      "case": "subprocess-alias-positive",
+      "expected": 1,
+      "reported": 1,
+      "agree": true
+    },
+    {
+      "case": "tool-method-literal-negative",
+      "expected": 0,
+      "reported": 0,
+      "agree": true
+    },
+    {
+      "case": "tool-method-positive",
+      "expected": 1,
+      "reported": 1,
+      "agree": true
+    },
+    {
+      "case": "tool-output-reassigned-negative",
+      "expected": 1,
+      "reported": 1,
+      "agree": true
+    },
+    {
+      "case": "tool-output-shlex-quoted-negative",
+      "expected": 1,
+      "reported": 1,
+      "agree": true
+    },
+    {
+      "case": "tool-output-to-shell-positive",
+      "expected": 2,
+      "reported": 2,
+      "agree": true
+    },
+    {
+      "case": "tool-with-approval-negative",
+      "expected": 1,
+      "reported": 1,
+      "agree": true
+    },
+    {
+      "case": "tool-without-approval-positive",
+      "expected": 2,
+      "reported": 2,
+      "agree": true
+    },
+    {
+      "case": "unlimited-turns-positive",
+      "expected": 1,
+      "reported": 1,
+      "agree": true
+    }
+  ]
+}
