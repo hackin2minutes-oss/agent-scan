@@ -1,0 +1,8 @@
+{
+  "pack": "agent-scan-kb",
+  "version": "0.0.1",
+  "files": {
+    "entries.json": "6966b59fe68b6db60db64e8de4bd360586a38ce6b156c0c3cd7a7609c9d66ea3"
+  },
+  "signature": null
+}

@@ -1,0 +1,27 @@
+{
+  "format": "agent-scan-kb-entries/1",
+  "entries": [
+    {
+      "id": "SINK-PY-OS-SYSTEM",
+      "kind": "sink",
+      "framework": "python-standard-library",
+      "function": "os.system",
+      "arguments": ["command"],
+      "weakness": "CWE-78",
+      "reference": "https://docs.python.org/3/library/os.html#os.system",
+      "test": "tests/test_scanner.py::test_os_system_with_variable_is_needs_review",
+      "verified": "2026-11-01"
+    },
+    {
+      "id": "SINK-PY-EVAL",
+      "kind": "sink",
+      "framework": "python-builtins",
+      "function": "eval",
+      "arguments": ["expression"],
+      "weakness": "CWE-95",
+      "reference": "https://docs.python.org/3/library/functions.html#eval",
+      "test": "tests/test_scanner.py::test_eval_with_variable_is_needs_review",
+      "verified": "2026-11-01"
+    }
+  ]
+}
