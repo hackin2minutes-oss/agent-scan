@@ -14,7 +14,7 @@ Sources, sinks and sanitisers come from the knowledge base. The analysis is cons
 import ast
 from pathlib import Path
 
-from agent_scan.scanner import NEEDS_REVIEW, Finding
+from agent_scan.scanner import NEEDS_REVIEW, Finding, import_aliases, resolve_call_key
 
 RULE = "tainted-value-to-sink"
 SOURCE_KIND = "source"
@@ -36,15 +36,6 @@ def _tokens(node: ast.AST) -> list[str] | None:
             return list(reversed(parts))
         else:
             return None
-
-
-def _call_key(node: ast.Call):
-    func = node.func
-    if isinstance(func, ast.Attribute) and isinstance(func.value, ast.Name):
-        return (func.value.id, func.attr)
-    if isinstance(func, ast.Name):
-        return (None, func.id)
-    return None
 
 
 def load_flow_knowledge(entries: list[dict]) -> dict:
@@ -106,6 +97,7 @@ def scan_flows(tree: ast.Module, rel_path: str, sinks: set, knowledge: dict) -> 
     findings: list[Finding] = []
     if not sources:
         return findings
+    aliases = import_aliases(tree)
     for scope in _scopes(tree):
         tainted: dict[str, list[str]] = {}
         for event in _scope_events(scope):
@@ -118,11 +110,11 @@ def scan_flows(tree: ast.Module, rel_path: str, sinks: set, knowledge: dict) -> 
                         else:
                             tainted.pop(target.id, None)
                 continue
-            key = _call_key(event)
+            key = resolve_call_key(event, aliases)
             if key is None or key not in sinks:
                 continue
             for argument in event.args:
-                if isinstance(argument, ast.Call) and _call_key(argument) in sanitisers:
+                if isinstance(argument, ast.Call) and resolve_call_key(argument, aliases) in sanitisers:
                     continue
                 trace = _taint_of(argument, tainted, sources)
                 if trace:

@@ -69,11 +69,41 @@ class ScanResult:
         return counts
 
 
-def _call_key(node: ast.Call):
+def import_aliases(tree: ast.AST) -> dict[str, str]:
+    """Local name -> fully qualified name, from the file's import statements.
+
+    `import subprocess as sp` maps sp to subprocess. `from subprocess import run as r` maps r to subprocess.run.
+    `import os.path` binds os, so it maps os to os."""
+    aliases: dict[str, str] = {}
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                if alias.asname:
+                    aliases[alias.asname] = alias.name
+                else:
+                    root = alias.name.split(".")[0]
+                    aliases[root] = root
+        elif isinstance(node, ast.ImportFrom) and node.module and node.level == 0:
+            for alias in node.names:
+                aliases[alias.asname or alias.name] = f"{node.module}.{alias.name}"
+    return aliases
+
+
+def resolve_call_key(node: ast.Call, aliases: dict[str, str]):
+    """(module, function) a call refers to, after resolving import aliases. None when it cannot be named.
+
+    A bare name that is not imported is a builtin (module None), so a local function called run() is not a sink."""
     func = node.func
-    if isinstance(func, ast.Attribute) and isinstance(func.value, ast.Name):
-        return (func.value.id, func.attr)
+    if isinstance(func, ast.Attribute):
+        if isinstance(func.value, ast.Name):
+            module = aliases.get(func.value.id, func.value.id)
+            return (module, func.attr)
+        return None
     if isinstance(func, ast.Name):
+        if func.id in aliases:
+            qualified = aliases[func.id]
+            module, _, name = qualified.rpartition(".")
+            return (module or None, name)
         return (None, func.id)
     return None
 
@@ -104,10 +134,11 @@ def scan_source(source: str, rel_path: str, sinks: set[tuple] | None = None) -> 
     from agent_scan import flow, kb
     knowledge = flow.load_flow_knowledge(kb.entries())
     findings.extend(flow.scan_flows(tree, rel_path, sinks, knowledge))
+    aliases = import_aliases(tree)
     for node in ast.walk(tree):
         if not isinstance(node, ast.Call):
             continue
-        key = _call_key(node)
+        key = resolve_call_key(node, aliases)
         if key is None or not node.args:
             continue
         if key not in sinks:
