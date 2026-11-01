@@ -21,7 +21,7 @@ sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT / "scripts"))
 
 import evaluate_corpus  # noqa: E402
-from agent_scan.scanner import scan_path  # noqa: E402
+from sawoneai.scanner import scan_path  # noqa: E402
 
 CORPUS = ROOT / "tests" / "corpus"
 RESULTS = ROOT / "results" / "baseline-comparison.json"
@@ -48,7 +48,7 @@ def _run(command: list[str]) -> subprocess.CompletedProcess:
         raise Blocked(f"{command[0]} is not installed or not on PATH") from exc
 
 
-SEMGREP_RULES = Path(os.environ.get("SEMGREP_RULES", "/tmp/agent-scan-baseline/python-rules.yml"))
+SEMGREP_RULES = Path(os.environ.get("SEMGREP_RULES", "/tmp/sawoneai-baseline/python-rules.yml"))
 RULESET_URL = "https://semgrep.dev/c/p/python"
 
 
@@ -98,7 +98,7 @@ def run_scanner(case: Path) -> set[tuple[str, int]]:
 
 def compare() -> dict:
     labels = python_labels()
-    tools = {"agent-scan": run_scanner, "semgrep-p-python": run_semgrep, "bandit": run_bandit}
+    tools = {"sawoneai": run_scanner, "semgrep-p-python": run_semgrep, "bandit": run_bandit}
     results = {}
     for name, runner in tools.items():
         hits = misses = unlabelled = 0
@@ -124,7 +124,7 @@ def compare() -> dict:
     total = sum(len(v) for v in labels.values())
     return {
         "labelled_python_lines": total,
-        "labelling": "author-labelled for agent-scan's rules; favours agent-scan (see scripts/compare_baselines.py)",
+        "labelling": "author-labelled for sawoneai's rules; favours sawoneai (see scripts/compare_baselines.py)",
         "tools": results,
     }
 

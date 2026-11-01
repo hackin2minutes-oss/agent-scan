@@ -1,7 +1,7 @@
 """Sign a knowledge-base pack for release. Run by the maintainer, never in CI on untrusted input.
 
 The private key must be a file outside this repository. The script refuses a key inside the repository, so a key cannot
-be committed by accident. The public key that verifies the pack must be shipped in src/agent_scan/data/kb/trust/.
+be committed by accident. The public key that verifies the pack must be shipped in src/sawoneai/data/kb/trust/.
 
 Usage: python3 scripts/sign_release.py PACK_DIR KEY_PEM
 """
@@ -16,7 +16,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
-from agent_scan import kb  # noqa: E402
+from sawoneai import kb  # noqa: E402
 
 
 def refuse_key_inside_repository(key_path: Path) -> None:

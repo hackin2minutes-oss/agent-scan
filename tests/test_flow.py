@@ -1,7 +1,7 @@
 import unittest
 
-from agent_scan import flow, kb
-from agent_scan.scanner import NEEDS_REVIEW, scan_source
+from sawoneai import flow, kb
+from sawoneai.scanner import NEEDS_REVIEW, scan_source
 
 SINKS = {("subprocess", "run"), ("os", "system"), (None, "eval")}
 KNOWLEDGE = flow.load_flow_knowledge(kb.entries())

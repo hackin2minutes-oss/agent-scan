@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from agent_scan import cli, kb
+from sawoneai import cli, kb
 
 
 def run_cli(*argv):

@@ -7,7 +7,7 @@ from pathlib import Path
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
-from agent_scan import kb
+from sawoneai import kb
 
 
 def signed_copy(private_key, trust_key=None):

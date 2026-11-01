@@ -1,4 +1,4 @@
-# Agent Scan
+# SawoneAI
 
 Security scanner for AI and agentic AI applications. It finds weaknesses that ordinary scanners miss, such as model
 output reaching a shell or an eval, and it says how sure it is.
@@ -11,9 +11,9 @@ source tracing, which is not built yet.
 
 ```
 pip install -e .
-agent-scan scan path/to/project
-agent-scan scan path/to/project --json
-agent-scan kb status
+sawoneai scan path/to/project
+sawoneai scan path/to/project --json
+sawoneai kb status
 ```
 
 ## Knowledge-base updates
@@ -21,12 +21,12 @@ agent-scan kb status
 Updates come only from sources listed in a configuration file, over https (plain http only for localhost):
 
 ```
-{ "knowledge_base_sources": ["https://updates.example.org/agent-scan/"] }
+{ "knowledge_base_sources": ["https://updates.example.org/sawoneai/"] }
 ```
 
 ```
-agent-scan kb update --config ~/.config/agent-scan/config.json
-agent-scan kb rollback
+sawoneai kb update --config ~/.config/sawoneai/config.json
+sawoneai kb rollback
 ```
 
 An update is downloaded, checked against the hashes in its manifest, checked for an Ed25519 signature from a key
@@ -36,9 +36,9 @@ signing key is not in this repository; the release process holds it.
 ## Container
 
 ```
-docker build -t agent-scan:0.0.1 .
+docker build -t sawoneai:0.0.1 .
 docker run --rm --network none --read-only --tmpfs /tmp --user 1001:1001 \
-  -v "$PWD:/work:ro" agent-scan:0.0.1 scan /work
+  -v "$PWD:/work:ro" sawoneai:0.0.1 scan /work
 ```
 
 The image runs as a non-root user, needs no network to scan, and the base image is pinned by digest. Verified locally
@@ -53,10 +53,10 @@ with networking off and a read-only root filesystem.
 
 ## Layout
 
-- `src/agent_scan/scanner.py`: the checks.
-- `src/agent_scan/kb.py`: knowledge-base pack, integrity verification.
-- `src/agent_scan/data/kb/`: the pack (`entries.json`, `manifest.json`).
-- `src/agent_scan/cli.py`: command line.
+- `src/sawoneai/scanner.py`: the checks.
+- `src/sawoneai/kb.py`: knowledge-base pack, integrity verification.
+- `src/sawoneai/data/kb/`: the pack (`entries.json`, `manifest.json`).
+- `src/sawoneai/cli.py`: command line.
 - `tests/`: unit tests. Run with `PYTHONPATH=src python3 -m unittest discover -s tests -t .`
 - `docs/plan/`: the plan, the licence position, and the OWASP coverage specification.
 

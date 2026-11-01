@@ -133,7 +133,7 @@ def current_pack_dir() -> Path:
     The verification result is cached per pack and is recomputed when the pack's files change, so a scan of many files
     verifies the pack once rather than once per file."""
     try:
-        from agent_scan import update
+        from sawoneai import update
         active = update.active_root() / "current"
     except Exception:
         return PACK_DIR

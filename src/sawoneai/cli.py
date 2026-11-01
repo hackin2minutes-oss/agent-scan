@@ -1,11 +1,11 @@
-"""Command line: agent-scan scan PATH | kb status | kb verify | version."""
+"""Command line: sawoneai scan PATH | kb status | kb verify | version."""
 
 import argparse
 import json
 import sys
 from pathlib import Path
 
-from agent_scan import __version__, kb, sarif, scanner
+from sawoneai import __version__, kb, sarif, scanner
 
 EXIT_OK = 0
 EXIT_CONFIRMED = 1
@@ -14,7 +14,7 @@ EXIT_ERROR = 2
 
 def _print_summary(result: scanner.ScanResult, pack_version: str) -> None:
     counts = result.counts()
-    print(f"Agent Scan {__version__} · knowledge base {pack_version} · files scanned: {result.files_scanned}")
+    print(f"SawoneAI {__version__} · knowledge base {pack_version} · files scanned: {result.files_scanned}")
     print(f"Findings: {counts[scanner.NEEDS_REVIEW]} needs review, {counts[scanner.UNKNOWN]} unknown, "
           "0 confirmed")
     print("Confirmed paths need a traced source; this version does not trace sources yet.")
@@ -52,7 +52,7 @@ def _cmd_scan(args) -> int:
     if args.format == "sarif":
         _emit(args, json.dumps(sarif.to_sarif(result, check.version), indent=2))
     elif args.format == "json" or args.json:
-        _emit(args, json.dumps({"agent_scan": __version__, "knowledge_base": check.version,
+        _emit(args, json.dumps({"sawoneai": __version__, "knowledge_base": check.version,
                           "root": result.root, "files_scanned": result.files_scanned,
                           "counts": result.counts(),
                           "findings": [finding.to_dict() for finding in result.findings]}, indent=2))
@@ -85,7 +85,7 @@ def _load_json(path: str):
 
 
 def _cmd_claims_check(args) -> int:
-    from agent_scan import claims
+    from sawoneai import claims
     try:
         lines = Path(args.transcript).read_text(encoding="utf-8").splitlines()
     except (OSError, UnicodeDecodeError) as exc:
@@ -107,7 +107,7 @@ def _cmd_claims_check(args) -> int:
 
 
 def _cmd_mcp_hash(args) -> int:
-    from agent_scan import mcp
+    from sawoneai import mcp
     try:
         tools = mcp.tools_from(_load_json(args.file))
     except (OSError, ValueError) as exc:
@@ -118,8 +118,8 @@ def _cmd_mcp_hash(args) -> int:
 
 
 def _cmd_kb_update(args) -> int:
-    from agent_scan import update
-    from agent_scan import kb as kb_module
+    from sawoneai import update
+    from sawoneai import kb as kb_module
     try:
         config = update.load_config(Path(args.config) if args.config else update.default_config_path())
         if not config.sources:
@@ -144,7 +144,7 @@ def _cmd_kb_update(args) -> int:
 
 
 def _cmd_kb_rollback(_args) -> int:
-    from agent_scan import update
+    from sawoneai import update
     try:
         update.rollback()
     except update.UpdateError as exc:
@@ -155,7 +155,7 @@ def _cmd_kb_rollback(_args) -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="agent-scan", description="Security scanner for AI and agent code.")
+    parser = argparse.ArgumentParser(prog="sawoneai", description="Security scanner for AI and agent code.")
     commands = parser.add_subparsers(dest="command", required=True)
     scan = commands.add_parser("scan", help="scan a directory of Python code")
     scan.add_argument("path", nargs="?", default=".")

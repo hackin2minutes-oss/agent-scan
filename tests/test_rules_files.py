@@ -2,8 +2,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from agent_scan import kb, textscan
-from agent_scan.scanner import scan_path
+from sawoneai import kb, textscan
+from sawoneai.scanner import scan_path
 
 RULES = textscan.text_rules(kb.entries())
 

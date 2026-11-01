@@ -17,8 +17,8 @@ import re
 from pathlib import Path
 from urllib.parse import urlparse
 
-from agent_scan import textscan
-from agent_scan.scanner import NEEDS_REVIEW, Finding
+from sawoneai import textscan
+from sawoneai.scanner import NEEDS_REVIEW, Finding
 
 CONFIG_NAMES = {".mcp.json", "mcp.json", ".cursor/mcp.json", "claude_desktop_config.json"}
 CREDENTIAL_KEY = re.compile(r"(?i)(token|secret|password|passwd|api[_-]?key|credential|auth)")

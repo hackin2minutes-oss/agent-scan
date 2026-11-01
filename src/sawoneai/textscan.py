@@ -7,7 +7,7 @@ never printed: the report shows only its first two and last two characters.
 import re
 from pathlib import Path
 
-from agent_scan.scanner import NEEDS_REVIEW, Finding
+from sawoneai.scanner import NEEDS_REVIEW, Finding
 
 RULE_FILE_NAMES = {"CLAUDE.md", "AGENTS.md", "GEMINI.md", ".cursorrules", "copilot-instructions.md",
                    ".github/copilot-instructions.md"}

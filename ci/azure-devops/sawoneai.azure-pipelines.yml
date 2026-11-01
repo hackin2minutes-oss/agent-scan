@@ -1,0 +1,35 @@
+# SawoneAI for Azure DevOps Pipelines. The job runs the SawoneAI container on the agent and publishes SARIF.
+# Set SAWONEAI_IMAGE to your registry copy, pinned by digest. The scan needs no network access.
+
+trigger:
+  branches:
+    include:
+      - main
+pr:
+  branches:
+    include:
+      - '*'
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  SAWONEAI_IMAGE: sawoneai:0.0.1
+
+steps:
+  - checkout: self
+
+  - script: |
+      docker run --rm --network none --read-only --tmpfs /tmp \
+        --user 1001:1001 \
+        -v "$(Build.SourcesDirectory):/work:ro" \
+        -v "$(Build.ArtifactStagingDirectory):/out" \
+        --entrypoint sawoneai \
+        $(SAWONEAI_IMAGE) scan /work --format sarif --output /out/sawoneai.sarif
+    displayName: Run SawoneAI
+    continueOnError: false
+
+  - publish: $(Build.ArtifactStagingDirectory)/sawoneai.sarif
+    artifact: sawoneai-sarif
+    displayName: Publish SARIF
+    condition: always()

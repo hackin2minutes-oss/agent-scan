@@ -12,7 +12,7 @@ from unittest import mock
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
-from agent_scan import kb, update
+from sawoneai import kb, update
 
 
 class QuietHandler(http.server.SimpleHTTPRequestHandler):
@@ -64,7 +64,7 @@ class UpdateTest(unittest.TestCase):
         self.served = Path(tempfile.mkdtemp())
         patches = [
             mock.patch.object(kb, "TRUST_DIR", self.trust),
-            mock.patch.dict(os.environ, {"AGENT_SCAN_HOME": str(self.home)}),
+            mock.patch.dict(os.environ, {"SAWONEAI_HOME": str(self.home)}),
         ]
         for patch in patches:
             patch.start()
@@ -179,7 +179,7 @@ class UpdateTest(unittest.TestCase):
     def test_the_cli_refuses_when_no_source_is_allowlisted(self):
         import contextlib
         import io
-        from agent_scan import cli
+        from sawoneai import cli
         err = io.StringIO()
         with contextlib.redirect_stderr(err):
             code = cli.main(["kb", "update", "--config", str(self.home / "none.json")])

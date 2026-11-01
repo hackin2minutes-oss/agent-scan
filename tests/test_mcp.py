@@ -3,8 +3,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from agent_scan import cli, kb, mcp, textscan
-from agent_scan.scanner import scan_path
+from sawoneai import cli, kb, mcp, textscan
+from sawoneai.scanner import scan_path
 
 MCP_RULES = {e["rule"]: e["commands"] for e in kb.entries() if e.get("kind") == "mcp_rule"}
 TEXT_RULES = textscan.text_rules(kb.entries())

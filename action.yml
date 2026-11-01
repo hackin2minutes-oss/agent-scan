@@ -1,4 +1,4 @@
-name: "Agent Scan"
+name: "SawoneAI"
 description: "Scans AI and agent code, instruction files and MCP configuration for agent-specific weaknesses. Writes SARIF."
 author: "hackin2minutes-oss"
 branding:
@@ -16,7 +16,7 @@ inputs:
   output:
     description: "File to write the result to, relative to the workspace."
     required: false
-    default: "agent-scan.sarif"
+    default: "sawoneai.sarif"
 outputs:
   report:
     description: "The file the result was written to."

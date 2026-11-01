@@ -1,6 +1,6 @@
 import unittest
 
-from agent_scan.scanner import scan_source
+from sawoneai.scanner import scan_source
 
 
 def rules_of(source: str) -> list[str]:

@@ -18,7 +18,7 @@ on purpose:
 
 import ast
 
-from agent_scan.scanner import NEEDS_REVIEW, Finding, _decorator_map, import_aliases, receiver_types, resolve_call_key
+from sawoneai.scanner import NEEDS_REVIEW, Finding, _decorator_map, import_aliases, receiver_types, resolve_call_key
 
 RULE = "tainted-value-to-sink"
 RULE_MODEL_INPUT = "untrusted-content-to-model-input"

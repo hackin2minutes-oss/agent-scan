@@ -1,7 +1,7 @@
 import json
 import unittest
 
-from agent_scan import claims
+from sawoneai import claims
 
 
 def line(record) -> str:

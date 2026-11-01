@@ -16,7 +16,7 @@ Limits of this slice, which the report states:
 
 from pathlib import Path
 
-from agent_scan.scanner import Finding, NEEDS_REVIEW, UNKNOWN
+from sawoneai.scanner import Finding, NEEDS_REVIEW, UNKNOWN
 
 RULE = "ts-non-literal-sink"
 

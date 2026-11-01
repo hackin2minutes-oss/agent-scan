@@ -1,6 +1,6 @@
 import unittest
 
-from agent_scan.scanner import NEEDS_REVIEW, UNKNOWN, scan_source
+from sawoneai.scanner import NEEDS_REVIEW, UNKNOWN, scan_source
 
 
 class ShellAndEvalSinkTest(unittest.TestCase):

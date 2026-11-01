@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from agent_scan import kb
+from sawoneai import kb
 
 PACK = kb.PACK_DIR
 

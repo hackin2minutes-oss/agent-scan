@@ -15,5 +15,5 @@ upstream LICENSE file, `Copyright (c) 2018 Max Brunsfeld`).
 Grammars for TypeScript and TSX, used by the TypeScript analyser. Licence: MIT, `Copyright (c) 2017 Max Brunsfeld`
 (verified from the upstream LICENSE file, and PyPI metadata `License :: OSI Approved :: MIT License`).
 
-Planned components (see docs/plan/agent-scan-plan-v3-licences.md) are added here with their licence text when they
+Planned components (see docs/plan/sawoneai-plan-v3-licences.md) are added here with their licence text when they
 are introduced: LangChain packages (MIT, to verify), OpenAI Python SDK (Apache-2.0, to verify).

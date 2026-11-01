@@ -8,8 +8,8 @@ Every result carries the verdict, the trace (if any) and what is missing, in its
 stated in the terminal output is lost in SARIF.
 """
 
-from agent_scan import __version__
-from agent_scan.scanner import NEEDS_REVIEW, ScanResult
+from sawoneai import __version__
+from sawoneai.scanner import NEEDS_REVIEW, ScanResult
 
 SARIF_VERSION = "2.1.0"
 SARIF_SCHEMA = "https://json.schemastore.org/sarif-2.1.0.json"
@@ -43,9 +43,9 @@ def to_sarif(result: ScanResult, knowledge_base_version: str) -> dict:
         "version": SARIF_VERSION,
         "runs": [{
             "tool": {"driver": {
-                "name": "agent-scan",
+                "name": "sawoneai",
                 "version": __version__,
-                "informationUri": "https://github.com/hackin2minutes-oss/agent-scan",
+                "informationUri": "https://github.com/hackin2minutes-oss/sawoneai",
                 "rules": [{"id": rule_id, "shortDescription": {"text": rule_id}} for rule_id in rule_ids],
             }},
             "invocations": [{"executionSuccessful": True}],

@@ -23,7 +23,7 @@ import urllib.request
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from agent_scan import kb
+from sawoneai import kb
 
 MAX_FILE_BYTES = 20_000_000
 MAX_MANIFEST_BYTES = 1_000_000
@@ -32,7 +32,7 @@ LOCAL_HOSTS = {"127.0.0.1", "localhost"}
 
 
 def default_config_path() -> Path:
-    return Path(os.environ.get("AGENT_SCAN_CONFIG", Path.home() / ".config" / "agent-scan" / "config.json"))
+    return Path(os.environ.get("SAWONEAI_CONFIG", Path.home() / ".config" / "sawoneai" / "config.json"))
 
 
 @dataclass
@@ -90,7 +90,7 @@ def parse_version(version: str) -> tuple[int, ...]:
 
 
 def active_root() -> Path:
-    home = Path(os.environ.get("AGENT_SCAN_HOME", Path.home() / ".local" / "share" / "agent-scan"))
+    home = Path(os.environ.get("SAWONEAI_HOME", Path.home() / ".local" / "share" / "sawoneai"))
     return home / "kb"
 
 

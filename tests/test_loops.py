@@ -1,7 +1,7 @@
 import unittest
 
-from agent_scan import kb
-from agent_scan.scanner import loop_rules, scan_source
+from sawoneai import kb
+from sawoneai.scanner import loop_rules, scan_source
 
 
 class AgentLoopTest(unittest.TestCase):

@@ -1,8 +1,8 @@
 import ast
 import unittest
 
-from agent_scan import kb
-from agent_scan.scanner import _decorator_map, import_aliases, receiver_types, scan_source, sink_keys
+from sawoneai import kb
+from sawoneai.scanner import _decorator_map, import_aliases, receiver_types, scan_source, sink_keys
 
 CALL = "resp.choices[0].message.tool_calls[0].function.arguments"
 

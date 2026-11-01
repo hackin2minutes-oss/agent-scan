@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "scripts"))
 
 import sign_release  # noqa: E402
-from agent_scan import kb  # noqa: E402
+from sawoneai import kb  # noqa: E402
 
 
 class ReleaseSigningTest(unittest.TestCase):

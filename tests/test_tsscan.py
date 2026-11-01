@@ -2,7 +2,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from agent_scan import scanner, tsscan
+from sawoneai import scanner, tsscan
 
 NEEDS = scanner.NEEDS_REVIEW
 UNKNOWN_V = scanner.UNKNOWN

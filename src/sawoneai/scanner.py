@@ -34,7 +34,7 @@ def sink_keys(entries_list: list[dict]) -> set[tuple]:
 
 
 def _decorator_map() -> dict[tuple, str]:
-    from agent_scan import kb
+    from sawoneai import kb
     mapping = {}
     for entry in kb.entries():
         if entry.get("kind") == "decorator":
@@ -55,7 +55,7 @@ def loop_rules(entries_list: list[dict]) -> dict[tuple, tuple]:
 
 
 def _loop_findings(tree: ast.AST, rel_path: str, aliases: dict[str, str], types: dict[str, str]) -> list["Finding"]:
-    from agent_scan import kb
+    from sawoneai import kb
     rules = loop_rules(kb.entries())
     findings = []
     for node in ast.walk(tree):
@@ -90,7 +90,7 @@ def approval_rules(entries_list: list[dict]) -> dict[tuple, str]:
 
 
 def _approval_findings(tree: ast.AST, rel_path: str, aliases: dict[str, str], sinks: set) -> list["Finding"]:
-    from agent_scan import kb
+    from sawoneai import kb
     entries_list = kb.entries()
     rules = approval_rules(entries_list)
     missing = {(e.get("module"), f): e.get("missing_values", [False])
@@ -140,7 +140,7 @@ def _sink_in_body(function: ast.AST, aliases: dict[str, str], sinks: set):
 
 
 def _load_sinks() -> set[tuple]:
-    from agent_scan import kb
+    from sawoneai import kb
     return sink_keys(kb.entries())
 
 
@@ -286,7 +286,7 @@ def scan_source(source: str, rel_path: str, sinks: set[tuple] | None = None) -> 
         return [Finding("parse-error", rel_path, 1, UNKNOWN, "the file could not be parsed as Python",
                         ["a file that parses as Python"])]
     findings = []
-    from agent_scan import flow, kb
+    from sawoneai import flow, kb
     knowledge = flow.load_flow_knowledge(kb.entries())
     findings.extend(flow.scan_flows(tree, rel_path, sinks, knowledge))
     aliases = import_aliases(tree)
@@ -321,7 +321,7 @@ def scan_source(source: str, rel_path: str, sinks: set[tuple] | None = None) -> 
 
 
 def _mcp_config_files(root: Path):
-    from agent_scan import mcp
+    from sawoneai import mcp
     for path in sorted(root.rglob("*.json")):
         if not path.is_file():
             continue
@@ -341,7 +341,7 @@ def _python_files(root: Path):
 
 
 def _typescript_files(root: Path):
-    from agent_scan import tsscan
+    from sawoneai import tsscan
     for path in sorted(p for p in root.rglob("*") if p.is_file() and p.suffix in tsscan.SUFFIXES):
         relative = path.relative_to(root)
         if any(part in SKIPPED_DIRECTORIES or part.startswith(".") for part in relative.parts[:-1]):
@@ -355,7 +355,7 @@ def scan_path(root: Path, mcp_tools: dict | None = None, mcp_approved: dict | No
     root = Path(root)
     result = ScanResult(root=str(root))
     sinks = _load_sinks()
-    from agent_scan import kb, mcp, textscan
+    from sawoneai import kb, mcp, textscan
     text_rules = textscan.text_rules(kb.entries())
     mcp_rules = {entry["rule"]: entry["commands"] for entry in kb.entries() if entry.get("kind") == "mcp_rule"}
     for path, relative in _mcp_config_files(root):
@@ -369,7 +369,7 @@ def scan_path(root: Path, mcp_tools: dict | None = None, mcp_approved: dict | No
             continue
         result.findings.extend(mcp.check_config(text, relative, mcp_rules))
     if mcp_tools is not None:
-        from agent_scan import mcp as mcp_module
+        from sawoneai import mcp as mcp_module
         approved = (mcp_approved or {}).get("tools", {})
         server = (mcp_approved or {}).get("server", "mcp-server")
         result.findings.extend(mcp_module.check_tools(mcp_module.tools_from(mcp_tools), approved, text_rules, server))
@@ -398,7 +398,7 @@ def scan_path(root: Path, mcp_tools: dict | None = None, mcp_approved: dict | No
                                            ["a readable UTF-8 file"]))
             continue
         result.findings.extend(scan_source(source, relative, sinks))
-    from agent_scan import tsscan
+    from sawoneai import tsscan
     ts_files = list(_typescript_files(root))
     if ts_files and not tsscan.available():
         result.findings.append(Finding("typescript-analyser-unavailable", ts_files[0][1], 1, UNKNOWN,

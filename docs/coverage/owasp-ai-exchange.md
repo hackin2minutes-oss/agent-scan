@@ -39,7 +39,7 @@ its control page before the M0 release gate, and rows may be added.
 ### Have resilient models
 
 All controls in this group concern training and model construction (alignment, federated learning, adversarial training,
-ensembles, data quality, bias testing, validation). Agent Scan reads application code and configuration, not training
+ensembles, data quality, bias testing, validation). SawoneAI reads application code and configuration, not training
 pipelines. Each is GUIDANCE, except where a training script is in the scanned code: then "training code loads data from
 unverified URLs" is covered by LLM04 (PARTIAL, M2).
 

@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from agent_scan import cli, sarif, scanner
+from sawoneai import cli, sarif, scanner
 
 
 def scan_of(source: str) -> scanner.ScanResult:
@@ -24,7 +24,7 @@ class SarifStructureTest(unittest.TestCase):
 
     def test_one_run_with_the_tool_and_knowledge_base_versions(self):
         run = self.doc["runs"][0]
-        self.assertEqual(run["tool"]["driver"]["name"], "agent-scan")
+        self.assertEqual(run["tool"]["driver"]["name"], "sawoneai")
         self.assertEqual(run["properties"]["knowledgeBaseVersion"], "0.0.1")
         self.assertEqual(run["invocations"][0]["executionSuccessful"], True)
 

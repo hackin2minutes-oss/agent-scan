@@ -17,7 +17,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
-from agent_scan.scanner import scan_path  # noqa: E402
+from sawoneai.scanner import scan_path  # noqa: E402
 
 CORPUS = ROOT / "tests" / "corpus"
 RESULTS = ROOT / "results" / "corpus-results.json"
