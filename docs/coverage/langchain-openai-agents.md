@@ -11,7 +11,8 @@ Status key (from the OWASP coverage specification):
 - **NOT DETECTABLE YET:** needs type information or taint tracking that the scanner does not have yet. The reason is given.
 - **OUT OF SCOPE:** stated with the reason.
 
-**Current result (version 0.0.1, after commit ce8572a):** 3 framework items are COVERED: the LangChain `tool` decorator, the
+**Current result (version 0.0.1, after the approval rule):** 5 framework items are COVERED: the Agents SDK runner's
+unlimited turn limit (`max_turns=None`) and the approval step on `function_tool` tools that reach a sink. Also covered: the LangChain `tool` decorator, the
 LangChain tool methods (`invoke`, `run`, `ainvoke`, `arun`), and the Agents SDK `function_tool` decorator with its
 `on_invoke_tool` method. Each is backed by a knowledge-base entry and a test. Other framework items are still open, as marked below.
 
@@ -36,9 +37,9 @@ LangChain tool methods (`invoke`, `run`, `ainvoke`, `arun`), and the Agents SDK 
 
 | Surface | Role | Status | Reason / milestone |
 |---|---|---|---|
-| `agents.run.Runner.run` / `run_sync` | Loop: runs an agent until it stops | PLANNED (M0) | Missing `max_turns` is an unbounded loop (LLM10, ASI08). |
+| `agents.run.Runner.run` / `run_sync` | Loop: runs an agent until it stops | COVERED (for an explicit `max_turns=None`) | A missing `max_turns` is not reported: the SDK's default is 10 turns. |
 | `agents.guardrail` (input and output guardrails) | Guard: checks content before or after a model call | PLANNED (M1) | A guard breaks a path only if it is listed as a sanitiser with its conditions. |
-| Tool approval hooks in `agents.tool` | Guard: requires confirmation before a tool runs | PLANNED (M0) | Missing approval on a destructive tool is reported (LLM06). |
+| `needs_approval` on `agents.tool.function_tool` | Guard: requires confirmation before a tool runs | COVERED (for tools whose body reaches a sink) | A tool reaching a sink with no approval, or with it set to False, is reported. A callable approval is not judged statically. |
 
 ## 3. Model output and content sources
 
