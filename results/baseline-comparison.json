@@ -1,0 +1,24 @@
+{
+  "labelled_python_lines": 13,
+  "labelling": "author-labelled for agent-scan's rules; favours agent-scan (see scripts/compare_baselines.py)",
+  "tools": {
+    "agent-scan": {
+      "status": "RAN",
+      "labelled_lines_found": 13,
+      "labelled_lines_missed": 0,
+      "findings_on_unlabelled_lines": 0,
+      "negative_cases_with_findings": 0
+    },
+    "semgrep-p-python": {
+      "status": "BLOCKED_WITH_EXACT_REASON",
+      "reason": "the p/python ruleset loaded zero rules, so semgrep could not run its checks"
+    },
+    "bandit": {
+      "status": "RAN",
+      "labelled_lines_found": 9,
+      "labelled_lines_missed": 4,
+      "findings_on_unlabelled_lines": 8,
+      "negative_cases_with_findings": 2
+    }
+  }
+}
