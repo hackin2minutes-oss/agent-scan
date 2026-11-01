@@ -1,0 +1,35 @@
+# Agent Scan for Azure DevOps Pipelines. The job runs the Agent Scan container on the agent and publishes SARIF.
+# Set AGENT_SCAN_IMAGE to your registry copy, pinned by digest. The scan needs no network access.
+
+trigger:
+  branches:
+    include:
+      - main
+pr:
+  branches:
+    include:
+      - '*'
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  AGENT_SCAN_IMAGE: agent-scan:0.0.1
+
+steps:
+  - checkout: self
+
+  - script: |
+      docker run --rm --network none --read-only --tmpfs /tmp \
+        --user 1001:1001 \
+        -v "$(Build.SourcesDirectory):/work:ro" \
+        -v "$(Build.ArtifactStagingDirectory):/out" \
+        --entrypoint agent-scan \
+        $(AGENT_SCAN_IMAGE) scan /work --format sarif --output /out/agent-scan.sarif
+    displayName: Run Agent Scan
+    continueOnError: false
+
+  - publish: $(Build.ArtifactStagingDirectory)/agent-scan.sarif
+    artifact: agent-scan-sarif
+    displayName: Publish SARIF
+    condition: always()

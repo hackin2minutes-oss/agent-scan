@@ -1,0 +1,21 @@
+# Agent Scan for GitLab CI. Copy this job into your .gitlab-ci.yml, or include this file.
+# The image is the Agent Scan container. Set AGENT_SCAN_IMAGE to your registry copy, pinned by digest.
+# The job needs no network access to scan, and it writes SARIF as an artifact.
+
+agent-scan:
+  stage: test
+  image:
+    name: "${AGENT_SCAN_IMAGE:-agent-scan:0.0.1}"
+    entrypoint: [""]
+  variables:
+    GIT_DEPTH: "1"
+  script:
+    - agent-scan scan . --format sarif --output agent-scan.sarif
+  artifacts:
+    when: always
+    paths:
+      - agent-scan.sarif
+    expire_in: 30 days
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
