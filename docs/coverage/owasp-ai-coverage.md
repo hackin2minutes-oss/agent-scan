@@ -10,20 +10,23 @@ GUIDANCE (not detectable from code or configuration; the report points to guidan
 Verification key: VERIFIED (name read from the official page in this check), UNVERIFIED (not read from the official
 document; taken from a secondary summary or from memory).
 
-## 1. OWASP Top 10 for LLM Applications (2025 names; 2026 edition not yet read)
+## 1. OWASP Top 10 for LLM Applications, 2026 edition (names VERIFIED from the official PDF, August 2026)
 
-| ID | Name (short) | Check | Status | Verification |
-|---|---|---|---|---|
-| LLM01 | Prompt injection | Model output and fetched content reaching sinks and model input; instruction-file checks | PARTIAL | UNVERIFIED |
-| LLM02 | Sensitive information disclosure | Credential patterns in prompts and rules; redaction in all outputs | PARTIAL | UNVERIFIED |
-| LLM03 | Supply chain | Unpinned MCP launcher packages | PARTIAL | UNVERIFIED |
-| LLM04 | Data and model poisoning | None | GUIDANCE | UNVERIFIED |
-| LLM05 | Improper output handling | Model output to shell and eval sinks | COVERED | UNVERIFIED |
-| LLM06 | Excessive agency | Tools reaching sinks without approval; tool-method sinks | COVERED (listed patterns) | UNVERIFIED |
-| LLM07 | System prompt leakage | Credentials in prompts | PARTIAL | UNVERIFIED |
-| LLM08 | Vector and embedding weaknesses | None yet | PLANNED (M2) | UNVERIFIED |
-| LLM09 | Misinformation | Missing human review is not detectable | GUIDANCE | UNVERIFIED |
-| LLM10 | Unbounded consumption | Explicit unlimited turn limit | PARTIAL | UNVERIFIED |
+| ID | Name | Check | Status |
+|---|---|---|---|
+| LLM01 | Prompt Injection | Fetched content and model output reaching model input or sinks; instruction-file checks | PARTIAL |
+| LLM02 | Sensitive Information Disclosure | Credential patterns in prompts, rules and MCP config; redaction in every output | PARTIAL |
+| LLM03 | Excessive Agency | Tools reaching sinks without approval; tool-method sinks; unlimited turns | COVERED (listed patterns) |
+| LLM04 | Supply Chain | Unpinned MCP launcher packages; changed MCP tool descriptions | PARTIAL |
+| LLM05 | Data and Model Poisoning | None | GUIDANCE |
+| LLM06 | Unbounded Consumption | Explicit unlimited turn limit | PARTIAL |
+| LLM07 | Misinformation | Missing human review is not detectable | GUIDANCE |
+| LLM08 | Hidden Context Exposure | Credentials in prompts and rules; hidden text in instruction files | PARTIAL |
+| LLM09 | Vector and Embedding Weaknesses | None yet | PLANNED (M2) |
+| LLM10 | Improper Output Handling | Model output to shell and eval sinks | COVERED |
+
+The 2025 names are retired in this table: "System Prompt Leakage" is not in the 2026 list, and the 2026 edition adds
+"Hidden Context Exposure". Rows above follow the 2026 list only.
 
 ## 2. OWASP Top 10 for Agentic Applications (ASI01 to ASI10)
 
@@ -57,17 +60,18 @@ document; taken from a secondary summary or from memory).
 
 ## 4. OWASP GenAI guide for third-party MCP servers (v1.0, October 2025)
 
-The official document was not read in this check. The themes below come from a secondary summary, so every row is
-UNVERIFIED until the document is read at genai.owasp.org.
+The official cheatsheet page was read. Its seven section topics are VERIFIED. Its individual recommendations are not on
+the page, so each topic's check is a PARTIAL mapping, and no recommendation is claimed as covered.
 
-| Theme | Check | Status | Verification |
-|---|---|---|---|
-| Discovery and origin verification | MCP config: remote servers over plain HTTP | PARTIAL | UNVERIFIED |
-| Connection mode and isolation | Shell-launched servers | PARTIAL | UNVERIFIED |
-| Authentication and authorisation | Literal credentials in MCP environment | PARTIAL | UNVERIFIED |
-| Human approval of unknown tools | Unapproved tool hashes | PARTIAL | UNVERIFIED |
-| Version pinning and hashing | Unpinned launcher packages; changed tool hashes | PARTIAL | UNVERIFIED |
-| Governance | Organisational process | GUIDANCE | UNVERIFIED |
+| Topic (VERIFIED) | Check | Status |
+|---|---|---|
+| Secure server discovery | MCP config: remote servers over plain HTTP | PARTIAL |
+| Client sandboxing | Shell-launched servers | PARTIAL |
+| Authentication | Literal credentials in MCP environment | PARTIAL |
+| Authorization | Unapproved tool hashes | PARTIAL |
+| Least-privilege access | Unpinned launcher packages; tool permission checks | PARTIAL |
+| Human-in-the-loop oversight | Missing approval on tools that reach sinks | PARTIAL |
+| Governance workflows | Organisational process | GUIDANCE |
 
 ## 5. OWASP AI Exchange
 
@@ -84,8 +88,7 @@ Control-level mapping: PLANNED before the M0 gate can close.
 
 ## 6. Gaps this table makes visible
 
-- The LLM Top 10 names are from 2025. The 2026 edition is not yet read.
-- The MCP guide rows rest on a secondary summary.
+- The MCP guide's individual recommendations are not on the official page, so the MCP rows are topic-level only.
 - The AI Exchange has only category-level coverage.
 - AST01, AST03 and AST04 need skill-file support, which is not built.
 - ASI06, ASI07, ASI10 and LLM08 need features planned for M2 and M3.
