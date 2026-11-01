@@ -412,4 +412,13 @@ def scan_path(root: Path, mcp_tools: dict | None = None, mcp_approved: dict | No
             result.findings.append(Finding("unreadable-file", relative, 1, UNKNOWN,
                                            "the file could not be read as UTF-8 text",
                                            ["a readable UTF-8 file"]))
+    from sawoneai import ghactions
+    for path, relative in ghactions.workflow_files(root):
+        result.files_scanned += 1
+        try:
+            result.findings.extend(ghactions.scan_file(path, relative))
+        except (OSError, UnicodeDecodeError):
+            result.findings.append(Finding("unreadable-file", relative, 1, UNKNOWN,
+                                           "the workflow file could not be read as UTF-8 text",
+                                           ["a readable UTF-8 file"]))
     return result
