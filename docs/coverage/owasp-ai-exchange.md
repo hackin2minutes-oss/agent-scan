@@ -127,8 +127,28 @@ unverified URLs" is covered by LLM04 (PARTIAL, M2).
 | Agent escape | Tool and sandbox boundaries (ASI02, ASI05) | PARTIAL |
 | Agent message structure manipulation | Agent-to-agent messages (ASI07) | PLANNED (M3) |
 
-## 3. Gaps before the release gate
+## 3. Further entries from the saved AI Exchange page
 
-1. Read the per-control pages and the remaining threat list (the truncated part of the table of contents).
+These slugs are in the saved page (AI Security Overview | AI Exchange). They were not in the earlier table of contents
+read, so each is a first pass from its name.
+
+| Entry | Type | Our check | Status |
+|---|---|---|---|
+| Development code leak (devcodeleak) | Threat | Secrets and credentials in source | PARTIAL |
+| Insecure output (insecureoutput) | Threat | Output to shell, SQL, HTML and eval sinks | COVERED (listed sinks) |
+| Denial of model service (denialmodelservice) | Threat | Unbounded loops and calls (LLM10) | PARTIAL |
+| Disclosure use (disclosureuse) | Threat | Sensitive data in outputs and logs | PARTIAL |
+| Prompt injection (promptinjection) | Threat | Flow analysis (LLM01) | PARTIAL |
+| Model poisoning (modelpoison) | Threat | Training pipeline | GUIDANCE |
+| Model inversion and memberships (modelinversionandmemberships) | Threat | Model property | GUIDANCE |
+| Detect odd input (detectoddinput) | Control | Runtime monitoring | GUIDANCE |
+| Detect adversarial input (detectadversarialinput) | Control | Runtime monitoring | GUIDANCE |
+| Filter sensitive model output (filtersensitivemodeloutput) | Control | Sensitive output patterns | PARTIAL |
+| Agentic AI threats (agenticaithreats) | Page | Covered by the agentic rows in section 2 | n/a |
+| Prompt injection, seven layers (promptinjectionsevenlayers) | Page | Covered by the prompt injection rows | n/a |
+
+## 4. Gaps before the release gate
+
+1. Read the per-control pages for every row. Statuses are a first pass from names only.
 2. Confirm each status above against the control text, and change rows that the text contradicts.
 3. Add a CI gate: every control and threat named in this file has a row and a status.

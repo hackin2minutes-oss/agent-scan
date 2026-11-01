@@ -84,7 +84,7 @@ The AI Exchange has many controls. This check read only its top-level categories
 | Watch (model I/O and monitoring) | Model output to sinks; fetched content into the model | PARTIAL (category level) |
 | Limit (sensitive data, model behaviour) | Credentials in prompts and config; unlimited turns | PARTIAL (category level) |
 
-Control-level mapping: PLANNED before the M0 gate can close.
+Control-level mapping: see docs/coverage/owasp-ai-exchange.md. Statuses there are a first pass from control and threat names, to be checked against each control's text before the M0 gate closes.
 
 ## 6. Gaps this table makes visible
 
