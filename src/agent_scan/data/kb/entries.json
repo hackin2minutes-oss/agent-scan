@@ -224,6 +224,23 @@
       "reference": "https://github.com/openai/openai-agents-python/blob/main/src/agents/tool.py",
       "test": "tests/test_approval.py::test_function_tool_reaching_a_sink_without_approval_is_flagged",
       "verified": "2026-11-01"
+    },
+    {
+      "id": "PARAM-AGENTS-LOCAL-SHELL-EXECUTOR",
+      "kind": "parameter_source",
+      "module": "agents",
+      "functions": [
+        "LocalShellTool"
+      ],
+      "keyword": "executor",
+      "framework": "openai-agents",
+      "arguments": [
+        "executor"
+      ],
+      "weakness": "CWE-78",
+      "reference": "https://github.com/openai/openai-agents-python/blob/main/src/agents/tool.py",
+      "test": "tests/test_executor.py::test_executor_request_reaching_a_shell_is_traced",
+      "verified": "2026-11-01"
     }
   ]
 }

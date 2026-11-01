@@ -39,16 +39,39 @@ def _tokens(node: ast.AST) -> list[str] | None:
 
 
 def load_flow_knowledge(entries: list[dict]) -> dict:
-    """Source suffixes, sanitiser keys, from knowledge-base entries."""
+    """Source suffixes, sanitiser keys and parameter sources, from knowledge-base entries.
+
+    A parameter source is a call that hands a function to the framework, which then calls it with model-chosen input.
+    The keyword names the argument that receives the function, so the function's parameters are tainted."""
     sources = []
     sanitisers = set()
+    parameter_sources = {}
     for entry in entries:
         if entry.get("kind") == SOURCE_KIND:
             sources.append(tuple(entry["pattern"].split(".")))
         elif entry.get("kind") == SANITISER_KIND:
             for function in entry.get("functions", []):
                 sanitisers.add((entry.get("module"), function))
-    return {"sources": sources, "sanitisers": sanitisers}
+        elif entry.get("kind") == "parameter_source":
+            for function in entry.get("functions", []):
+                parameter_sources[(entry.get("module"), function)] = entry["keyword"]
+    return {"sources": sources, "sanitisers": sanitisers, "parameter_sources": parameter_sources}
+
+
+def _executor_functions(tree: ast.Module, aliases: dict, parameter_sources: dict) -> dict[str, str]:
+    """Names of functions handed to a parameter source, mapped to the framework call that receives them."""
+    names = {}
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        key = resolve_call_key(node, aliases)
+        if key not in parameter_sources:
+            continue
+        keyword = parameter_sources[key]
+        for argument in node.keywords:
+            if argument.arg == keyword and isinstance(argument.value, ast.Name):
+                names[argument.value.id] = f"{key[1]}({keyword}=...)"
+    return names
 
 
 def _source_trace(expr: ast.AST, sources) -> list[str] | None:
@@ -99,8 +122,15 @@ def scan_flows(tree: ast.Module, rel_path: str, sinks: set, knowledge: dict) -> 
         return findings
     aliases = import_aliases(tree)
     types = receiver_types(tree, aliases, _decorator_map())
+    executors = _executor_functions(tree, aliases, knowledge.get("parameter_sources", {}))
     for scope in _scopes(tree):
         tainted: dict[str, list[str]] = {}
+        if isinstance(scope, (ast.FunctionDef, ast.AsyncFunctionDef)) and scope.name in executors:
+            for argument in scope.args.args:
+                if argument.arg != "self":
+                    tainted[argument.arg] = [
+                        f"line {scope.lineno}: parameter {argument.arg} of {scope.name}, which receives "
+                        f"model-chosen input through {executors[scope.name]}"]
         for event in _scope_events(scope):
             if isinstance(event, ast.Assign):
                 trace = _taint_of(event.value, tainted, sources)
