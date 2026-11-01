@@ -48,17 +48,38 @@ def _run(command: list[str]) -> subprocess.CompletedProcess:
         raise Blocked(f"{command[0]} is not installed or not on PATH") from exc
 
 
+SEMGREP_RULES = Path(os.environ.get("SEMGREP_RULES", "/tmp/agent-scan-baseline/python-rules.yml"))
+RULESET_URL = "https://semgrep.dev/c/p/python"
+
+
+def _ruleset() -> Path:
+    """The public Python ruleset, downloaded to a scratch location. It is used only for this comparison and is never
+    committed or shipped: Semgrep's rules licence restricts their use in competing products."""
+    if not SEMGREP_RULES.is_file():
+        import urllib.request
+        SEMGREP_RULES.parent.mkdir(parents=True, exist_ok=True)
+        with urllib.request.urlopen(RULESET_URL, timeout=120) as response:
+            SEMGREP_RULES.write_bytes(response.read())
+    return SEMGREP_RULES
+
+
 def run_semgrep(case: Path) -> set[tuple[str, int]]:
-    completed = _run([SEMGREP, "scan", "--config", "p/python", "--metrics=off", "--json", "-q", str(case)])
+    import shutil
+    import tempfile
+    # Copied out of the repository, so git-based and .semgrepignore file selection cannot skip the files.
+    scratch = Path(tempfile.mkdtemp()) / "case"
+    shutil.copytree(case, scratch)
+    completed = _run([SEMGREP, "scan", "--config", str(_ruleset()), "--metrics=off", "--json", str(scratch)])
     if not completed.stdout:
         raise Blocked("semgrep produced no output")
     document = json.loads(completed.stdout)
-    if not document.get("rules"):
-        # Without rules the tool reports nothing. That is not a result, so the baseline is recorded as blocked.
-        raise Blocked("the p/python ruleset loaded zero rules, so semgrep could not run its checks")
+    rules_run = document.get("rules")
+    if rules_run is not None and not rules_run and not document.get("results"):
+        # Zero rules is not a result. Recorded as blocked, not as "found nothing".
+        raise Blocked("semgrep loaded no rules from the downloaded ruleset")
     out = set()
     for item in document.get("results", []):
-        out.add((Path(item["path"]).relative_to(case).as_posix(), item["start"]["line"]))
+        out.add((Path(item["path"]).relative_to(scratch).as_posix(), item["start"]["line"]))
     return out
 
 

@@ -10,8 +10,11 @@
       "negative_cases_with_findings": 0
     },
     "semgrep-p-python": {
-      "status": "BLOCKED_WITH_EXACT_REASON",
-      "reason": "the p/python ruleset loaded zero rules, so semgrep could not run its checks"
+      "status": "RAN",
+      "labelled_lines_found": 1,
+      "labelled_lines_missed": 12,
+      "findings_on_unlabelled_lines": 0,
+      "negative_cases_with_findings": 0
     },
     "bandit": {
       "status": "RAN",
