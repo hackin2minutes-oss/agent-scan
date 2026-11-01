@@ -11,18 +11,19 @@ Status key (from the OWASP coverage specification):
 - **NOT DETECTABLE YET:** needs type information or taint tracking that the scanner does not have yet. The reason is given.
 - **OUT OF SCOPE:** stated with the reason.
 
-**Current result: 0 framework items are COVERED.** The scanner covers Python standard-library sinks only (see
-`src/agent_scan/data/kb/entries.json`). This check exists so that the gap is visible, not hidden.
+**Current result (version 0.0.1, after commit ce8572a):** 3 framework items are COVERED: the LangChain `tool` decorator, the
+LangChain tool methods (`invoke`, `run`, `ainvoke`, `arun`), and the Agents SDK `function_tool` decorator with its
+`on_invoke_tool` method. Each is backed by a knowledge-base entry and a test. Other framework items are still open, as marked below.
 
 ## 1. Tool execution: where model-chosen arguments run
 
 | Surface | Role | Status | Reason / milestone |
 |---|---|---|---|
 | `langchain_core.tools.BaseTool.invoke` / `run` / `_run` (`ChildTool`) | Sink: runs a tool with arguments that may come from a model | NOT DETECTABLE YET | Method call on an object. Needs type inference to know the receiver is a tool. M0 follow-up. |
-| `langchain_core.tools.tool` (decorator) | Definition: declares the tool and its argument schema | PLANNED (M0) | Argument schemas decide whether free-text arguments reach a shell or path. |
+| `langchain_core.tools.tool` (decorator) | Definition: declares the tool and its argument schema | COVERED (typing only) | Makes the decorated name a tool, so its methods are sinks. Argument schemas are not read yet. |
 | `langchain_core.tools.BaseToolkit` | Definition: groups tools | PLANNED (M1) | Counts the tools an agent receives (excessive agency). |
-| `agents.tool.function_tool` | Definition: wraps a Python function as an agent tool | PLANNED (M0) | Same as the LangChain decorator. |
-| `agents.tool.FunctionTool.on_invoke_tool` | Sink: runs the user function with model-chosen arguments | NOT DETECTABLE YET | Same reason as `BaseTool.invoke`. |
+| `agents.tool.function_tool` | Definition: wraps a Python function as an agent tool | COVERED (typing only) | Same as the LangChain decorator. |
+| `agents.tool.FunctionTool.on_invoke_tool` | Sink: runs the user function with model-chosen arguments | COVERED (for tools made with `function_tool`) | Same as the LangChain row. |
 | `agents.tool.LocalShellTool` | Sink: model-chosen shell commands on the local machine | PLANNED (M0) | Entry needed for the executor that runs the commands. High priority. |
 | `agents.tool.ShellToolLocalSkill`, `ShellToolInlineSkill` | Definition: shell skills and their sources | PLANNED (M1) | Skills are a supply-chain surface (ASI04). |
 | `agents.tool.ComputerTool` | Permission: controls the screen and input | PLANNED (M1) | Safety-check hooks are recognised as guards. |
@@ -54,7 +55,13 @@ Status key (from the OWASP coverage specification):
 2. **Taint tracking** from a source (model response, retrieved content) to a sink. This is the M0 flow analysis.
 3. **Entries** for each PLANNED row above, each with a reference and a passing test.
 
-## 5. Gate for M0
+## 5. Known limits of the current checks
+
+- Receivers are typed per file, not per function: a name reused for something else in the same file may be wrongly typed.
+- Only the two decorators above create typed tools. `StructuredTool.from_function` and similar constructors are not typed.
+- Sink names come from the framework source as read at the time of the check. They have not yet been tested against the installed versions' behaviour.
+
+## 6. Gate for M0
 
 M0 does not close until every row in this document is COVERED, PLANNED with a milestone inside M0, or OUT OF SCOPE with a
 stated reason. No row is left without a status.
